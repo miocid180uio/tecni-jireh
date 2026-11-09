@@ -197,7 +197,7 @@ export default function SparePartQuoteModal({
           {/* Botones de Acción hacia WhatsApp RefriJireh y Web Oficial */}
           <div className="pt-2 space-y-2.5">
             <a
-              href={links.whatsappUrl}
+              href="https://refrijireh.com/locations"
               target="_blank"
               rel="noopener noreferrer"
               className="w-full py-3 px-4 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white font-extrabold text-sm shadow-lg flex items-center justify-center gap-2 transition-all"

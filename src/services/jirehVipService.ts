@@ -700,9 +700,7 @@ export function buildRefriJirehPartQuoteLinks(params: {
     .filter(Boolean)
     .join("\n");
 
-  const whatsappUrl = `https://wa.me/584124558891?text=${encodeURIComponent(
-    mensajeWhatsapp
-  )}`;
+  const whatsappUrl = "https://refrijireh.com/locations";
 
   return {
     webUrl: webUrl.toString(),
