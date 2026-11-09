@@ -345,8 +345,8 @@ export const MOCK_TECHNICIANS: TechnicianProfile[] = [
     codigoVipRefriJireh: "VIP-TOP-02",
     insigniaRapida: "Top VIP",
     coordenadas: {
-      lat: 10.2512,
-      lng: -67.6024,
+      lat: 10.2815,
+      lng: -67.6215,
       mapX: 58,
       mapY: 46,
     },
@@ -397,8 +397,8 @@ export const MOCK_TECHNICIANS: TechnicianProfile[] = [
     codigoVipRefriJireh: "VIP-TOP-03",
     insigniaRapida: "Verificado",
     coordenadas: {
-      lat: 10.245,
-      lng: -67.585,
+      lat: 10.2465,
+      lng: -67.6012,
       mapX: 35,
       mapY: 54,
     },
@@ -501,8 +501,8 @@ export const MOCK_TECHNICIANS: TechnicianProfile[] = [
     codigoVipRefriJireh: "VIP-TOP-05",
     insigniaRapida: "Verificado",
     coordenadas: {
-      lat: 10.258,
-      lng: -67.595,
+      lat: 10.2528,
+      lng: -67.5818,
       mapX: 42,
       mapY: 66,
     },

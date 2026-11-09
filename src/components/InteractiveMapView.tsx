@@ -1,16 +1,15 @@
 "use client";
 
-import React, { useState, useRef } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import {
+  MapPin,
   Star,
-  ShieldCheck,
-  Award,
-  MessageCircle,
-  X,
   Maximize2,
-  Plus,
-  Minus,
-  RotateCcw,
+  ShieldCheck,
+  Navigation,
+  ExternalLink,
+  Layers,
+  Sparkles,
 } from "lucide-react";
 import { TechnicianProfile, JirehCity } from "@/types/jireh";
 
@@ -22,30 +21,6 @@ interface InteractiveMapViewProps {
   onExpandMap?: () => void;
 }
 
-/**
- * Calcula una posición bien distribuida en el mapa para evitar que los pines
- * se amontonen uno encima de otro en pantallas móviles.
- */
-function getWellSpacedCoords(index: number, total: number, fallbackX: number, fallbackY: number) {
-  if (total <= 6) {
-    const preset6 = [
-      { x: 24, y: 34 },
-      { x: 72, y: 30 },
-      { x: 48, y: 52 },
-      { x: 26, y: 72 },
-      { x: 74, y: 68 },
-      { x: 52, y: 26 },
-    ];
-    return preset6[index % preset6.length];
-  }
-  // Distribución en espiral áurea suave dentro del área segura [16%..84%]
-  const goldenAngle = index * 2.39996;
-  const radius = Math.min(34, 10 + Math.sqrt(index + 1) * 5.6);
-  const x = Math.max(15, Math.min(85, Math.round(50 + Math.cos(goldenAngle) * radius * 1.15)));
-  const y = Math.max(20, Math.min(82, Math.round(52 + Math.sin(goldenAngle) * radius * 0.95)));
-  return { x: x || fallbackX, y: y || fallbackY };
-}
-
 export default function InteractiveMapView({
   technicians,
   selectedCity,
@@ -53,457 +28,367 @@ export default function InteractiveMapView({
   compactPreview = false,
   onExpandMap,
 }: InteractiveMapViewProps) {
-  const [activePinTech, setActivePinTech] = useState<TechnicianProfile | null>(
-    technicians[0] || null
-  );
+  const mapContainerRef = useRef<HTMLDivElement | null>(null);
+  const leafletMapRef = useRef<any>(null);
+  const tileLayerRef = useRef<any>(null);
+  const markersLayerRef = useRef<any>(null);
 
-  // Estado de Zoom y Desplazamiento (Pan) para gestos táctiles y botones +/-
-  const [zoom, setZoom] = useState<number>(1);
-  const [pan, setPan] = useState<{ x: number; y: number }>({ x: 0, y: 0 });
-  const [isDragging, setIsDragging] = useState(false);
+  const [activeTech, setActiveTech] = useState<TechnicianProfile | null>(null);
+  const [mapStyle, setMapStyle] = useState<"roadmap" | "hybrid">("roadmap");
+  const [isMapReady, setIsMapReady] = useState(false);
 
-  const dragStartRef = useRef<{ x: number; y: number; panX: number; panY: number } | null>(null);
-  const pinchDistanceRef = useRef<number | null>(null);
-  const pinchInitialZoomRef = useRef<number>(1);
+  // =========================================================================
+  // REGLA SOLICITADA: Mostrar en el mapa ÚNICAMENTE la ubicación de los
+  // 6 primeros técnicos (Top #1 al #6) + aquellos técnicos adicionales que
+  // hayan actualizado expresamente su información de ubicación.
+  // =========================================================================
+  const mappedTechnicians = useMemo(() => {
+    const primarySixAndUpdated = technicians.filter(
+      (t) =>
+        (t.rankingVip !== undefined && t.rankingVip <= 6) ||
+        t.fechaSolicitud === "Actualización VIP" ||
+        t.fechaSolicitud === "Hoy"
+    );
 
-  const cityLabel =
-    selectedCity === "Todas"
-      ? "Maracay • Valencia • Caracas"
-      : `Radar: ${selectedCity}`;
+    if (primarySixAndUpdated.length > 0) {
+      return primarySixAndUpdated;
+    }
+    return technicians.slice(0, 6);
+  }, [technicians]);
 
-  // Cantidad inteligente de pines visibles según el nivel de zoom para que nunca se sature en móvil
-  const maxPinsForZoom = compactPreview
-    ? zoom < 1.35
-      ? 6
-      : zoom < 1.9
-      ? 12
-      : 24
-    : zoom < 1.3
-    ? 12
-    : zoom < 1.8
-    ? 24
-    : 36;
+  // Inicializar Google Maps sobre motor interactivo Leaflet (100% táctil, pellizco para zoom y arrastre nativo)
+  useEffect(() => {
+    let isMounted = true;
 
-  const pinsToRender = technicians.slice(0, maxPinsForZoom);
+    async function setupGoogleMap() {
+      if (!mapContainerRef.current || leafletMapRef.current) return;
 
-  const clampPan = (nx: number, ny: number, currentZoom: number) => {
-    const maxOffset = (currentZoom - 1) * 180 + 40;
-    return {
-      x: Math.max(-maxOffset, Math.min(maxOffset, nx)),
-      y: Math.max(-maxOffset, Math.min(maxOffset, ny)),
+      const L = (await import("leaflet")).default;
+      if (!isMounted || !mapContainerRef.current) return;
+
+      const initialCenter: [number, number] =
+        selectedCity === "Valencia"
+          ? [10.2215, -68.012]
+          : selectedCity === "Caracas"
+          ? [10.496, -66.853]
+          : [10.258, -67.601]; // Maracay por defecto
+
+      const initialZoom = selectedCity === "Todas" ? 10 : 13;
+
+      const map = L.map(mapContainerRef.current, {
+        center: initialCenter,
+        zoom: initialZoom,
+        zoomControl: false,
+        attributionControl: false,
+        touchZoom: true,
+        dragging: true,
+        scrollWheelZoom: true,
+        doubleClickZoom: true,
+      });
+
+      // Controles de zoom en esquina inferior derecha (estilo Google Maps)
+      L.control
+        .zoom({
+          position: "bottomright",
+          zoomInTitle: "Acercar mapa",
+          zoomOutTitle: "Alejar mapa",
+        })
+        .addTo(map);
+
+      // Capa oficial de Google Maps Calles en Español (mt1.google.com)
+      const gmapTileUrl =
+        "https://mt1.google.com/vt/lyrs=m&x={x}&y={y}&z={z}&hl=es";
+      const tileLayer = L.tileLayer(gmapTileUrl, {
+        maxZoom: 20,
+        minZoom: 6,
+      }).addTo(map);
+
+      const markersGroup = L.layerGroup().addTo(map);
+
+      leafletMapRef.current = map;
+      tileLayerRef.current = tileLayer;
+      markersLayerRef.current = markersGroup;
+      setIsMapReady(true);
+    }
+
+    setupGoogleMap();
+
+    return () => {
+      isMounted = false;
+      if (leafletMapRef.current) {
+        leafletMapRef.current.remove();
+        leafletMapRef.current = null;
+      }
     };
-  };
+  }, []);
 
-  const handleZoomIn = (e?: React.MouseEvent) => {
-    e?.stopPropagation();
-    setZoom((prev) => Math.min(3.2, Number((prev + 0.45).toFixed(2))));
-  };
+  // Cambiar entre vista Google Maps Calles (lyrs=m) y Google Maps Satélite Híbrido (lyrs=y)
+  useEffect(() => {
+    if (!tileLayerRef.current) return;
+    const lyrs = mapStyle === "hybrid" ? "y" : "m";
+    tileLayerRef.current.setUrl(
+      `https://mt1.google.com/vt/lyrs=${lyrs}&x={x}&y={y}&z={z}&hl=es`
+    );
+  }, [mapStyle]);
 
-  const handleZoomOut = (e?: React.MouseEvent) => {
-    e?.stopPropagation();
-    setZoom((prev) => {
-      const next = Math.max(1, Number((prev - 0.45).toFixed(2)));
-      if (next === 1) setPan({ x: 0, y: 0 });
-      else setPan((p) => clampPan(p.x, p.y, next));
-      return next;
-    });
-  };
+  // Renderizar los pines de los 6 primeros técnicos (+ actualizados) y ajustar vista automáticamente
+  useEffect(() => {
+    let cancelled = false;
 
-  const handleResetView = (e?: React.MouseEvent) => {
-    e?.stopPropagation();
-    setZoom(1);
-    setPan({ x: 0, y: 0 });
-  };
+    async function renderTechnicianMarkers() {
+      if (!isMapReady || !leafletMapRef.current || !markersLayerRef.current)
+        return;
 
-  // --- Gestos Táctiles Smartphone (1 dedo arrastrar / 2 dedos pellizcar para acercar o alejar) ---
-  const handleTouchStart = (e: React.TouchEvent) => {
-    if (e.touches.length === 2) {
-      const dx = e.touches[0].clientX - e.touches[1].clientX;
-      const dy = e.touches[0].clientY - e.touches[1].clientY;
-      pinchDistanceRef.current = Math.hypot(dx, dy);
-      pinchInitialZoomRef.current = zoom;
-      dragStartRef.current = null;
-    } else if (e.touches.length === 1) {
-      setIsDragging(true);
-      dragStartRef.current = {
-        x: e.touches[0].clientX,
-        y: e.touches[0].clientY,
-        panX: pan.x,
-        panY: pan.y,
-      };
+      const L = (await import("leaflet")).default;
+      if (cancelled || !leafletMapRef.current || !markersLayerRef.current)
+        return;
+
+      const map = leafletMapRef.current;
+      const markersGroup = markersLayerRef.current;
+      markersGroup.clearLayers();
+
+      const boundsPoints: [number, number][] = [];
+
+      mappedTechnicians.forEach((tech, index) => {
+        const lat = Number(tech.coordenadas?.lat) || 10.258;
+        const lng = Number(tech.coordenadas?.lng) || -67.595;
+        boundsPoints.push([lat, lng]);
+
+        const isSelected = activeTech?.id === tech.id;
+        const rankLabel = tech.rankingVip ? `#${tech.rankingVip}` : `#${index + 1}`;
+        const firstName = tech.nombre.split(" ")[0];
+
+        const badgeHtml = `
+          <div style="
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            padding: 5px 10px;
+            border-radius: 9999px;
+            font-weight: 800;
+            font-size: 11px;
+            white-space: nowrap;
+            box-shadow: 0 6px 16px rgba(10, 37, 64, 0.32);
+            border: 2px solid ${isSelected ? "#fbbf24" : "#ffffff"};
+            background: ${
+              isSelected
+                ? "#0A2540"
+                : "linear-gradient(135deg, #0A2540 0%, #0096C7 100%)"
+            };
+            color: #ffffff;
+            transform: ${isSelected ? "scale(1.12)" : "scale(1)"};
+            transition: all 0.2s ease;
+            cursor: pointer;
+          ">
+            <span style="color: #fbbf24; font-weight: 900;">${rankLabel}</span>
+            <span>${firstName}</span>
+            <span style="background: rgba(255,255,255,0.18); padding: 1px 6px; border-radius: 999px; font-size: 10px;">
+              $${tech.tarifaDiagnosticoUSD}
+            </span>
+          </div>
+        `;
+
+        const icon = L.divIcon({
+          className: "jireh-gmap-pin",
+          html: badgeHtml,
+          iconSize: [120, 32],
+          iconAnchor: [60, 16],
+        });
+
+        const marker = L.marker([lat, lng], { icon });
+        marker.on("click", () => {
+          setActiveTech(tech);
+          map.flyTo([lat, lng], Math.max(map.getZoom(), 14), {
+            duration: 0.6,
+          });
+        });
+
+        marker.addTo(markersGroup);
+      });
+
+      // Ajustar encuadre para mostrar los técnicos en pantalla
+      if (!activeTech) {
+        if (selectedCity === "Maracay") {
+          map.setView([10.261, -67.598], 13);
+        } else if (selectedCity === "Valencia") {
+          map.setView([10.2215, -68.012], 13);
+        } else if (selectedCity === "Caracas") {
+          map.setView([10.496, -66.853], 13);
+        } else if (boundsPoints.length > 1) {
+          const bounds = L.latLngBounds(boundsPoints);
+          map.fitBounds(bounds, { padding: [38, 38], maxZoom: 13 });
+        }
+      }
+    }
+
+    renderTechnicianMarkers();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [isMapReady, mappedTechnicians, selectedCity, activeTech]);
+
+  const handleFocusTechnicianOnMap = (tech: TechnicianProfile) => {
+    setActiveTech(tech);
+    if (leafletMapRef.current) {
+      leafletMapRef.current.flyTo(
+        [tech.coordenadas.lat, tech.coordenadas.lng],
+        15,
+        { duration: 0.7 }
+      );
     }
   };
 
-  const handleTouchMove = (e: React.TouchEvent) => {
-    if (e.touches.length === 2 && pinchDistanceRef.current !== null) {
-      const dx = e.touches[0].clientX - e.touches[1].clientX;
-      const dy = e.touches[0].clientY - e.touches[1].clientY;
-      const dist = Math.hypot(dx, dy);
-      const ratio = dist / Math.max(1, pinchDistanceRef.current);
-      const nextZoom = Math.max(1, Math.min(3.2, Number((pinchInitialZoomRef.current * ratio).toFixed(2))));
-      setZoom(nextZoom);
-      if (nextZoom === 1) setPan({ x: 0, y: 0 });
-    } else if (e.touches.length === 1 && dragStartRef.current) {
-      const dx = e.touches[0].clientX - dragStartRef.current.x;
-      const dy = e.touches[0].clientY - dragStartRef.current.y;
-      setPan(clampPan(dragStartRef.current.panX + dx, dragStartRef.current.panY + dy, zoom));
-    }
-  };
-
-  const handleTouchEnd = () => {
-    setIsDragging(false);
-    dragStartRef.current = null;
-    pinchDistanceRef.current = null;
-  };
-
-  // --- Soporte de Arrastre y Rueda con Mouse en Escritorio ---
-  const handleMouseDown = (e: React.MouseEvent) => {
-    setIsDragging(true);
-    dragStartRef.current = {
-      x: e.clientX,
-      y: e.clientY,
-      panX: pan.x,
-      panY: pan.y,
-    };
-  };
-
-  const handleMouseMove = (e: React.MouseEvent) => {
-    if (!isDragging || !dragStartRef.current) return;
-    const dx = e.clientX - dragStartRef.current.x;
-    const dy = e.clientY - dragStartRef.current.y;
-    setPan(clampPan(dragStartRef.current.panX + dx, dragStartRef.current.panY + dy, zoom));
-  };
-
-  const handleMouseUp = () => {
-    setIsDragging(false);
-    dragStartRef.current = null;
-  };
-
-  const handleWheel = (e: React.WheelEvent) => {
-    e.preventDefault();
-    const delta = e.deltaY < 0 ? 0.25 : -0.25;
-    setZoom((prev) => {
-      const next = Math.max(1, Math.min(3.2, Number((prev + delta).toFixed(2))));
-      if (next === 1) setPan({ x: 0, y: 0 });
-      return next;
-    });
+  const getExternalGoogleMapsUrl = (tech: TechnicianProfile) => {
+    const query = encodeURIComponent(
+      `${tech.zonasCobertura[0] || ""}, ${tech.ciudad}, Venezuela`
+    );
+    return `https://www.google.com/maps/search/?api=1&query=${tech.coordenadas.lat},${tech.coordenadas.lng}&query_place_id=${query}`;
   };
 
   return (
-    <div
-      className={`relative w-full rounded-2xl overflow-hidden border border-slate-200/90 shadow-card bg-[#E8EEF5] select-none touch-none ${
-        compactPreview ? "h-56 sm:h-64" : "h-[460px] sm:h-[560px]"
-      } ${isDragging ? "cursor-grabbing" : "cursor-grab"}`}
-      onTouchStart={handleTouchStart}
-      onTouchMove={handleTouchMove}
-      onTouchEnd={handleTouchEnd}
-      onMouseDown={handleMouseDown}
-      onMouseMove={handleMouseMove}
-      onMouseUp={handleMouseUp}
-      onMouseLeave={handleMouseUp}
-      onWheel={handleWheel}
-    >
-      {/* Lienzo Transformable con Zoom y Desplazamiento (Pan) */}
+    <div className="space-y-2.5">
       <div
-        className="w-full h-full relative transition-transform duration-75 ease-out origin-center"
-        style={{
-          transform: `translate3d(${pan.x}px, ${pan.y}px, 0) scale(${zoom})`,
-        }}
+        className={`relative w-full rounded-2xl overflow-hidden border border-slate-200/90 shadow-card bg-slate-100 ${
+          compactPreview ? "h-64 sm:h-80" : "h-[480px] sm:h-[560px]"
+        }`}
       >
-        {/* Fondo de Mapa Vectorial Estilizado (Calles, Avenidas y Manzanas) */}
-        <svg
-          className="w-full h-full object-cover pointer-events-none"
-          viewBox="0 0 800 500"
-          preserveAspectRatio="xMidYMid slice"
-        >
-          <defs>
-            <pattern
-              id="cityGrid"
-              width="60"
-              height="60"
-              patternUnits="userSpaceOnUse"
-            >
-              <rect width="60" height="60" fill="#EDF2F7" />
-              <path
-                d="M 60 0 L 0 0 0 60"
-                fill="none"
-                stroke="#DCE4EE"
-                strokeWidth="2"
-              />
-            </pattern>
-            <radialGradient id="radarPulse" cx="50%" cy="50%" r="50%">
-              <stop offset="0%" stopColor="#00B4D8" stopOpacity="0.26" />
-              <stop offset="70%" stopColor="#00B4D8" stopOpacity="0.07" />
-              <stop offset="100%" stopColor="#00B4D8" stopOpacity="0" />
-            </radialGradient>
-          </defs>
+        {/* Contenedor Real de Google Maps */}
+        <div ref={mapContainerRef} className="w-full h-full" />
 
-          <rect width="800" height="500" fill="url(#cityGrid)" />
-
-          {/* Zonas Verdes */}
-          <path
-            d="M0,0 L320,0 L270,110 L90,140 L0,90 Z"
-            fill="#D4EED8"
-            opacity="0.7"
-          />
-          <path
-            d="M580,320 L800,290 L800,500 L520,500 Z"
-            fill="#D4EED8"
-            opacity="0.65"
-          />
-          <circle cx="400" cy="250" r="145" fill="url(#radarPulse)" />
-
-          {/* Avenidas Principales */}
-          <path
-            d="M -20 320 Q 260 240 450 220 T 820 120"
-            fill="none"
-            stroke="#FFFFFF"
-            strokeWidth="14"
-          />
-          <path
-            d="M -20 160 Q 300 200 520 280 T 820 410"
-            fill="none"
-            stroke="#FFFFFF"
-            strokeWidth="12"
-          />
-          <path
-            d="M 240 -20 L 310 520"
-            fill="none"
-            stroke="#FFFFFF"
-            strokeWidth="10"
-          />
-          <path
-            d="M 550 -20 L 460 520"
-            fill="none"
-            stroke="#FFFFFF"
-            strokeWidth="10"
-          />
-
-          {/* Autopista Regional del Centro */}
-          <path
-            d="M -20 390 Q 340 290 820 190"
-            fill="none"
-            stroke="#FDE68A"
-            strokeWidth="10"
-          />
-          <path
-            d="M -20 390 Q 340 290 820 190"
-            fill="none"
-            stroke="#F59E0B"
-            strokeWidth="1.5"
-            strokeDasharray="8 8"
-          />
-        </svg>
-
-        {/* Punto Azul Central "Tu Ubicación" */}
-        <div
-          className="absolute z-10 -translate-x-1/2 -translate-y-1/2 pointer-events-none"
-          style={{ left: "50%", top: "50%" }}
-        >
-          <div className="w-10 h-10 rounded-full bg-[#00B4D8]/25 animate-pulse flex items-center justify-center">
-            <div className="w-3.5 h-3.5 rounded-full bg-[#00B4D8] border-2 border-white shadow-md" />
+        {/* Píldora Superior Izquierda: Google Maps + Top 6 Técnicos */}
+        <div className="absolute top-3 left-3 z-20 flex flex-wrap items-center gap-1.5 pointer-events-none">
+          <div className="bg-[#0A2540]/90 backdrop-blur-md text-white px-3 py-1.5 rounded-full text-[11px] font-bold flex items-center gap-1.5 shadow-md border border-white/15">
+            <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+            <span>Google Maps • Top {mappedTechnicians.length} Técnicos</span>
           </div>
+          <span className="hidden sm:inline-flex items-center gap-1 bg-white/95 backdrop-blur-md text-[#0A2540] px-2.5 py-1 rounded-full text-[10px] font-bold shadow-sm border border-slate-200">
+            <Sparkles className="w-3 h-3 text-amber-500" />
+            Nuevas ubicaciones se suman al actualizar su perfil
+          </span>
         </div>
 
-        {/* Pines Interactivos Bien Distribuidos (Escalan inversamente al zoom para no solaparse) */}
-        {pinsToRender.map((tech, idx) => {
-          const isSelected = activePinTech?.id === tech.id;
-          const pos = getWellSpacedCoords(
-            idx,
-            pinsToRender.length,
-            tech.coordenadas.mapX,
-            tech.coordenadas.mapY
-          );
+        {/* Controles Superiores Derechos: Cambiar Vista Calles/Satélite + Ampliar */}
+        <div className="absolute top-3 right-3 z-20 flex items-center gap-1.5">
+          <button
+            type="button"
+            onClick={() =>
+              setMapStyle((prev) =>
+                prev === "roadmap" ? "hybrid" : "roadmap"
+              )
+            }
+            className="bg-white/95 hover:bg-white active:scale-95 text-[#0A2540] px-2.5 py-1.5 rounded-full text-[11px] font-extrabold shadow-md flex items-center gap-1 border border-slate-200 transition-all"
+            title="Cambiar entre Mapa de Calles y Satélite de Google Maps"
+          >
+            <Layers className="w-3.5 h-3.5 text-[#0096C7]" />
+            <span>{mapStyle === "roadmap" ? "Satélite" : "Calles"}</span>
+          </button>
 
+          {compactPreview && onExpandMap && (
+            <button
+              type="button"
+              onClick={onExpandMap}
+              className="bg-[#0A2540]/90 hover:bg-[#0A2540] active:scale-95 text-white px-3 py-1.5 rounded-full text-[11px] font-extrabold shadow-md flex items-center gap-1.5 border border-white/15 transition-all"
+            >
+              <Maximize2 className="w-3.5 h-3.5 text-[#00B4D8]" />
+              <span>Ampliar</span>
+            </button>
+          )}
+        </div>
+
+        {/* Tarjeta Flotante al Seleccionar uno de los 6 Técnicos en Google Maps */}
+        {activeTech && (
+          <div className="absolute bottom-3 left-3 right-14 sm:right-auto sm:w-96 z-20 bg-white/95 backdrop-blur-md rounded-2xl p-3 shadow-floating border border-cyan-200 flex items-center justify-between gap-3 animate-in fade-in slide-in-from-bottom-2 duration-200">
+            <div className="flex items-center gap-2.5 min-w-0">
+              <img
+                src={activeTech.fotoUrl}
+                alt={activeTech.nombre}
+                className="w-11 h-11 rounded-xl object-cover shrink-0 border border-slate-200"
+              />
+              <div className="min-w-0">
+                <div className="flex items-center gap-1">
+                  <span className="text-[10px] font-black bg-amber-100 text-amber-800 px-1.5 py-0.2 rounded">
+                    #{activeTech.rankingVip || 1}
+                  </span>
+                  <p className="text-xs font-extrabold text-[#0A2540] truncate">
+                    {activeTech.nombre}
+                  </p>
+                  <ShieldCheck className="w-3.5 h-3.5 text-[#00B4D8] shrink-0" />
+                </div>
+                <p className="text-[11px] text-slate-600 truncate">
+                  📍 {activeTech.ciudad} •{" "}
+                  {activeTech.zonasCobertura.slice(0, 2).join(", ")}
+                </p>
+                <div className="flex items-center gap-2 text-[11px] font-bold text-[#0096C7]">
+                  <span>
+                    ${activeTech.tarifaDiagnosticoUSD}{" "}
+                    {activeTech.modalidadTarifa}
+                  </span>
+                  <span className="text-amber-500 flex items-center gap-0.5">
+                    <Star className="w-3 h-3 fill-amber-400 text-amber-400" />
+                    {activeTech.calificacion.toFixed(1)}
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            <div className="flex flex-col gap-1 shrink-0">
+              <button
+                type="button"
+                onClick={() => onSelectTechnician(activeTech)}
+                className="bg-[#00B4D8] hover:bg-[#0096C7] text-white text-[11px] font-extrabold px-2.5 py-1.5 rounded-xl transition-colors"
+              >
+                Ver Perfil
+              </button>
+              <a
+                href={getExternalGoogleMapsUrl(activeTech)}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="bg-slate-100 hover:bg-slate-200 text-[#0A2540] text-[10px] font-bold px-2.5 py-1 rounded-lg flex items-center justify-center gap-1 transition-colors"
+              >
+                <Navigation className="w-2.5 h-2.5 text-[#0096C7]" />
+                <span>Google Maps</span>
+                <ExternalLink className="w-2.5 h-2.5 opacity-60" />
+              </a>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Selector Rápido de los 6 Primeros Técnicos en el Mapa */}
+      <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar py-0.5">
+        <span className="text-[11px] font-extrabold text-[#0A2540] shrink-0 mr-1 flex items-center gap-1">
+          <MapPin className="w-3.5 h-3.5 text-[#00B4D8]" />
+          <span>Ubicar en Google Maps:</span>
+        </span>
+        {mappedTechnicians.map((tech, idx) => {
+          const isSelected = activeTech?.id === tech.id;
           return (
             <button
               key={tech.id}
               type="button"
-              onClick={(e) => {
-                e.stopPropagation();
-                setActivePinTech(tech);
-                if (compactPreview) {
-                  onSelectTechnician(tech);
-                }
-              }}
-              style={{
-                left: `${pos.x}%`,
-                top: `${pos.y}%`,
-                transform: `translate(-50%, -50%) scale(${Math.max(
-                  0.62,
-                  1 / Math.pow(zoom, 0.65)
-                )})`,
-              }}
-              className={`absolute transition-transform duration-150 ${
-                isSelected ? "z-30" : "z-20 hover:z-30"
+              onClick={() => handleFocusTechnicianOnMap(tech)}
+              className={`px-2.5 py-1 rounded-xl text-[11px] font-bold whitespace-nowrap border transition-all flex items-center gap-1.5 shrink-0 ${
+                isSelected
+                  ? "bg-[#0A2540] text-white border-[#0A2540] shadow-sm"
+                  : "bg-white hover:bg-cyan-50 text-slate-700 border-slate-200"
               }`}
             >
-              <div
-                className={`px-2 py-0.5 sm:px-2.5 sm:py-1 rounded-full font-extrabold text-[11px] shadow-md flex items-center gap-1 border-2 whitespace-nowrap ${
-                  isSelected
-                    ? "bg-[#0A2540] text-white border-amber-400 scale-110"
-                    : tech.esVipVerificado
-                    ? "bg-[#00B4D8] text-white border-white"
-                    : "bg-white text-[#0A2540] border-slate-200"
+              <span className="text-amber-500 font-black">
+                #{tech.rankingVip || idx + 1}
+              </span>
+              <span>{tech.nombre.split(" ").slice(0, 2).join(" ")}</span>
+              <span
+                className={`text-[10px] ${
+                  isSelected ? "text-cyan-200" : "text-slate-400"
                 }`}
               >
-                {tech.esVipVerificado && (
-                  <Award
-                    className={`w-3 h-3 shrink-0 ${
-                      isSelected ? "text-amber-400" : "text-amber-200"
-                    }`}
-                  />
-                )}
-                <span>${tech.tarifaDiagnosticoUSD}</span>
-                <span className="text-[10px] opacity-95">
-                  ★{tech.calificacion.toFixed(1)}
-                </span>
-              </div>
-              <div
-                className={`w-2 h-2 rotate-45 mx-auto -mt-1 ${
-                  isSelected
-                    ? "bg-[#0A2540]"
-                    : tech.esVipVerificado
-                    ? "bg-[#00B4D8]"
-                    : "bg-white"
-                }`}
-              />
+                ({tech.ciudad})
+              </span>
             </button>
           );
         })}
       </div>
-
-      {/* Etiqueta Superior Izquierda Compacta y Elegante */}
-      <div className="absolute top-2.5 left-2.5 z-30 flex items-center gap-1.5 bg-[#0A2540]/90 backdrop-blur-md text-white px-2.5 py-1 rounded-full shadow-md border border-white/15 pointer-events-none">
-        <span className="w-2 h-2 rounded-full bg-[#00B4D8] animate-ping shrink-0" />
-        <span className="text-[11px] font-bold truncate max-w-[165px] sm:max-w-none">
-          {cityLabel}
-        </span>
-        <span className="text-[10px] bg-cyan-500/25 text-cyan-200 font-extrabold px-1.5 py-0.2 rounded-full">
-          {pinsToRender.length}/{technicians.length}
-        </span>
-      </div>
-
-      {/* Botón Superior Derecho para Ampliar Mapa */}
-      {onExpandMap && (
-        <button
-          type="button"
-          onClick={(e) => {
-            e.stopPropagation();
-            onExpandMap();
-          }}
-          className="absolute top-2.5 right-2.5 z-30 bg-white/95 hover:bg-white text-[#0A2540] px-2.5 py-1 rounded-full shadow-md border border-slate-200/80 active:scale-95 flex items-center gap-1 text-[11px] font-extrabold"
-          title="Ampliar vista de mapa"
-        >
-          <Maximize2 className="w-3.5 h-3.5 text-[#00B4D8]" />
-          <span>{compactPreview ? "Ampliar" : "Lista"}</span>
-        </button>
-      )}
-
-      {/* Controles Táctiles de Zoom (+ / - / Reset) en el borde derecho */}
-      <div className="absolute bottom-3 right-2.5 z-30 flex flex-col gap-1 bg-white/95 backdrop-blur-md p-1 rounded-2xl shadow-md border border-slate-200/90">
-        <button
-          type="button"
-          onClick={handleZoomIn}
-          aria-label="Acercar mapa"
-          className="w-8 h-8 rounded-xl bg-slate-50 hover:bg-cyan-50 active:scale-90 text-[#0A2540] flex items-center justify-center font-bold transition-all"
-        >
-          <Plus className="w-4 h-4" />
-        </button>
-        <button
-          type="button"
-          onClick={handleZoomOut}
-          aria-label="Alejar mapa"
-          className="w-8 h-8 rounded-xl bg-slate-50 hover:bg-cyan-50 active:scale-90 text-[#0A2540] flex items-center justify-center font-bold transition-all"
-        >
-          <Minus className="w-4 h-4" />
-        </button>
-        {zoom > 1 && (
-          <button
-            type="button"
-            onClick={handleResetView}
-            aria-label="Restablecer zoom"
-            className="w-8 h-8 rounded-xl bg-amber-50 hover:bg-amber-100 active:scale-90 text-amber-800 flex items-center justify-center font-bold transition-all"
-          >
-            <RotateCcw className="w-3.5 h-3.5" />
-          </button>
-        )}
-      </div>
-
-      {/* Indicador inferior izquierdo de ayuda táctil */}
-      {compactPreview && (
-        <div className="absolute bottom-2.5 left-2.5 z-30 bg-white/90 backdrop-blur-sm text-slate-600 px-2.5 py-0.5 rounded-full text-[10px] font-semibold border border-slate-200/80 pointer-events-none">
-          {zoom > 1
-            ? `Zoom ${zoom.toFixed(1)}x • Arrastra para mover`
-            : "Pellizca o usa + / - para acercar"}
-        </div>
-      )}
-
-      {/* Tarjeta Flotante Inferior cuando se selecciona un Pin en Vista Mapa Completa */}
-      {!compactPreview && activePinTech && (
-        <div className="absolute bottom-3 left-3 right-14 sm:left-auto sm:right-14 sm:w-96 z-30 bg-white/95 backdrop-blur-md rounded-2xl p-3 shadow-floating border border-cyan-200/80 animate-in fade-in slide-in-from-bottom-2">
-          <div className="flex items-start gap-3">
-            <img
-              src={activePinTech.fotoUrl}
-              alt={activePinTech.nombre}
-              className="w-14 h-14 rounded-xl object-cover shrink-0 border border-slate-200"
-            />
-            <div className="flex-1 min-w-0">
-              <div className="flex items-center justify-between">
-                <span className="text-[10px] font-bold uppercase tracking-wider text-[#0096C7] flex items-center gap-1 truncate">
-                  {activePinTech.esVipVerificado && (
-                    <ShieldCheck className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
-                  )}
-                  {activePinTech.esVipVerificado
-                    ? `VIP ${activePinTech.nivelVip} (${activePinTech.puntosJirehVip} pts)`
-                    : "Técnico Registrado"}
-                </span>
-                <button
-                  type="button"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setActivePinTech(null);
-                  }}
-                  className="text-slate-400 hover:text-slate-600"
-                >
-                  <X className="w-4 h-4" />
-                </button>
-              </div>
-
-              <h4 className="font-bold text-sm text-[#0A2540] truncate">
-                {activePinTech.nombre}
-              </h4>
-              <p className="text-xs text-slate-500 truncate">
-                {activePinTech.etiquetaDestacada}
-              </p>
-
-              <div className="flex items-center justify-between mt-2">
-                <div className="flex items-center gap-2">
-                  <span className="text-sm font-extrabold text-[#0A2540]">
-                    ${activePinTech.tarifaDiagnosticoUSD}
-                  </span>
-                  <span className="text-xs font-bold text-amber-600 flex items-center gap-0.5">
-                    <Star className="w-3.5 h-3.5 fill-amber-400 text-amber-400" />
-                    {activePinTech.calificacion.toFixed(1)}
-                  </span>
-                </div>
-
-                <button
-                  type="button"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    onSelectTechnician(activePinTech);
-                  }}
-                  className="bg-[#00B4D8] hover:bg-[#0096C7] text-white text-xs font-bold px-3 py-1.5 rounded-lg shadow-sm transition-colors flex items-center gap-1"
-                >
-                  <MessageCircle className="w-3.5 h-3.5" />
-                  Ver / Reservar
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }

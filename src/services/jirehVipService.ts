@@ -455,12 +455,22 @@ export async function activateVipTechnicianProfile(payload: {
     comprasAcumuladasUSD: vipClient.comprasAcumuladasUSD,
     nivelVip: vipClient.nivelVip,
     codigoVipRefriJireh: vipClient.codigoReferidoVip,
-    estadoPublicacion: "pendiente",
+    estadoPublicacion: "publicado",
     fechaSolicitud: "Actualización VIP",
     insigniaRapida: "Top VIP",
     coordenadas: {
-      lat: 10.258,
-      lng: -67.595,
+      lat:
+        finalCity === "Valencia"
+          ? 10.2215
+          : finalCity === "Caracas"
+          ? 10.4961
+          : 10.258,
+      lng:
+        finalCity === "Valencia"
+          ? -68.0112
+          : finalCity === "Caracas"
+          ? -66.8532
+          : -67.595,
       mapX: 48,
       mapY: 45,
     },
