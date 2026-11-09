@@ -1,0 +1,81 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Función auxiliar: Verifica si es el Administrador Maestro (admin@jireh.com) o cuenta con claim admin
+    function isAdmin() {
+      return request.auth != null && (
+        request.auth.token.admin == true ||
+        request.auth.token.email == "admin@jireh.com"
+      );
+    }
+
+    // Función auxiliar: Verifica si el usuario autenticado es el dueño exacto del documento
+    function isOwner(userId) {
+      return request.auth != null && request.auth.uid == userId;
+    }
+
+    // ========================================================================
+    // 1. COLECCIÓN `users` (Sistema de Puntos Clientes Jireh VIP + Perfil)
+    // ========================================================================
+    match /users/{userId} {
+      // Lectura permitida al propio dueño del perfil o al Administrador
+      allow read: if isOwner(userId) || isAdmin();
+
+      // Creación de nuevo usuario:
+      // Solo puede crearse con points == 0 y totalSpent == 0 (nadie puede inventarse puntos al registrarse)
+      allow create: if isOwner(userId)
+        && (!("points" in request.resource.data) || request.resource.data.points == 0)
+        && (!("totalSpent" in request.resource.data) || request.resource.data.totalSpent == 0);
+
+      // Actualización de perfil por un usuario antiguo ("Completar mi Perfil"):
+      // CRÍTICO: El usuario puede agregar/actualizar teléfono, dirección, ciudad, sede, rol o especialidades,
+      // pero TIENE PROHIBIDO modificar `points`, `totalSpent` o `ci`.
+      allow update: if isAdmin() || (
+        isOwner(userId)
+        && request.resource.data.points == resource.data.points
+        && request.resource.data.totalSpent == resource.data.totalSpent
+        && request.resource.data.ci == resource.data.ci
+      );
+
+      // Borrado: Exclusivo para el Administrador Maestro
+      allow delete: if isAdmin();
+    }
+
+    // ========================================================================
+    // 2. COLECCIÓN `tecnicos_jireh` (Perfiles Públicos en TECNI JIREH)
+    // ========================================================================
+    match /tecnicos_jireh/{techId} {
+      // Cualquier visitante puede ver técnicos en la cartelera
+      allow read: if true;
+
+      // Un usuario autenticado puede postular su perfil técnico, pero entra como "pendiente"
+      allow create: if request.auth != null && (
+        isAdmin() || request.resource.data.estadoPublicacion == "pendiente"
+      );
+
+      // Solo el dueño puede actualizar sus datos descriptivos (sin auto-aprobarse si está pausado),
+      // y SOLO admin@jireh.com puede cambiar `estadoPublicacion` ("publicado" / "pausado") o `puntosJirehVip`
+      allow update: if isAdmin() || (
+        request.auth != null
+        && request.auth.uid == resource.data.uid
+        && request.resource.data.estadoPublicacion == resource.data.estadoPublicacion
+        && request.resource.data.puntosJirehVip == resource.data.puntosJirehVip
+      );
+
+      allow delete: if isAdmin();
+    }
+
+    // ========================================================================
+    // 3. COLECCIÓN `transactions` (Historial de Puntos y Ventas por Sede)
+    // ========================================================================
+    match /transactions/{txId} {
+      allow read: if isAdmin() || (
+        request.auth != null && resource.data.uid == request.auth.uid
+      );
+      // Solo los administradores / backend pueden registrar o canjear puntos
+      allow write: if isAdmin();
+    }
+  }
+}

@@ -1,0 +1,18 @@
+{
+  "name": "TECNI JIREH - Servicios Técnicos al Instante",
+  "short_name": "Tecni Jireh",
+  "description": "Localiza, filtra y contrata técnicos verificados de refrigeración y aire acondicionado con el respaldo de Refrigeraciones Jireh.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0A2540",
+  "theme_color": "#00B4D8",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

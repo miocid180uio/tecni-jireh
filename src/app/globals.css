@@ -1,0 +1,25 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --jireh-navy: #0a2540;
+  --jireh-cyan: #00b4d8;
+  --jireh-bg: #f8fafc;
+}
+
+body {
+  background-color: var(--jireh-bg);
+  color: #0f172a;
+  font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Scrollbar limpia para carrusel de categorías tipo Airbnb */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
