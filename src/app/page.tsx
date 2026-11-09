@@ -295,39 +295,26 @@ function TecniJirehContent() {
   return (
     <div className="min-h-screen flex flex-col bg-[#F8FAFC] pb-24 md:pb-12">
       {/* =====================================================================
-          1. BARRA SUPERIOR DE ECOSISTEMA REFRIGERACIONES JIREH + ACCESO ADMIN
+          1. BARRA SUPERIOR DISCRETA (SOLO ESCRITORIO PARA NO SATURAR MÓVILES)
          ===================================================================== */}
-      <div className="bg-[#07192C] text-cyan-100 text-[11px] py-2 px-4 border-b border-white/10">
-        <div className="max-w-7xl mx-auto flex flex-wrap items-center justify-between gap-2">
+      <div className="hidden md:block bg-[#07192C] text-cyan-100 text-[11px] py-1.5 px-4 border-b border-white/10">
+        <div className="max-w-7xl mx-auto flex items-center justify-between gap-2">
           <div className="flex items-center gap-2">
             <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-cyan-500/20 text-[#00B4D8] font-bold">
               <Database className="w-3 h-3" />
-              {isFirebaseConfigured
-                ? "Sincronizado en Vivo • Club VIP Jireh"
-                : "Sincronizado • Club VIP Jireh"}
+              Sincronizado en Vivo • Club VIP Jireh
             </span>
-            <span className="hidden md:inline text-slate-300">
+            <span className="text-slate-300">
               • Respaldado por <strong>Refrigeraciones Jireh</strong>
             </span>
           </div>
 
-          <div className="flex items-center gap-3 ml-auto">
-            <button
-              type="button"
-              onClick={() => applyInstagramStoryPreset("split", "Maracay")}
-              className="hover:text-white flex items-center gap-1 text-pink-300 font-semibold transition-colors"
-              title="Probar filtro automático desde historia de @refrigeracionesjireh"
-            >
-              <Instagram className="w-3.5 h-3.5" />
-              <span className="hidden sm:inline">@refrigeracionesjireh:</span>
-              <span className="underline">?categoria=split&zona=maracay</span>
-            </button>
-
+          <div className="flex items-center gap-4 ml-auto">
             <a
               href="https://www.refrijireh.com"
               target="_blank"
               rel="noopener noreferrer"
-              className="hover:text-white hidden sm:inline-flex items-center gap-1 font-semibold text-cyan-300"
+              className="hover:text-white inline-flex items-center gap-1 font-semibold text-cyan-300"
             >
               <span>Tienda refrijireh.com</span>
               <ExternalLink className="w-3 h-3" />
@@ -344,7 +331,6 @@ function TecniJirehContent() {
               <ExternalLink className="w-3.5 h-3.5" />
             </a>
 
-            {/* Acceso exclusivo para admin@jireh.com */}
             <button
               type="button"
               onClick={() => setIsAdminModalOpen(true)}
@@ -356,27 +342,23 @@ function TecniJirehContent() {
               title="Acceso exclusivo para admin@jireh.com"
             >
               <SlidersHorizontal className="w-3 h-3" />
-              <span>
-                {isMasterAdminLogged ? "Panel Admin (Activo)" : "Admin"}
-              </span>
+              <span>{isMasterAdminLogged ? "Panel Admin" : "Admin"}</span>
             </button>
           </div>
         </div>
       </div>
 
       {/* =====================================================================
-          2. HERO & NAVBAR PRINCIPAL (INSPIRADO EN EL MOCKUP + AIRBNB)
+          2. HEADER COMPACTO & ELEGANTE (OPTIMIZADO PARA SMARTPHONE)
          ===================================================================== */}
-      <header className="bg-gradient-to-br from-[#0A2540] via-[#0D3156] to-[#00B4D8] text-white shadow-lg relative overflow-hidden">
-        {/* Decoración sutil de copos de nieve tecnológicos */}
+      <header className="bg-gradient-to-br from-[#0A2540] via-[#0D3156] to-[#0096C7] text-white shadow-md relative overflow-hidden">
         <div className="pointer-events-none absolute -right-12 -top-12 opacity-10">
-          <Snowflake className="w-64 h-64 text-white" />
+          <Snowflake className="w-52 h-52 text-white" />
         </div>
 
-        <div className="max-w-7xl mx-auto px-4 pt-4 pb-6 relative z-10">
-          {/* Fila Superior: Logo TECNI JIREH + Selector de Ciudad + Botón Cédula VIP */}
-          <div className="flex flex-wrap items-center justify-between gap-3 mb-5">
-            {/* Logo Oficial con Engranaje + Copo de Nieve */}
+        <div className="max-w-7xl mx-auto px-3.5 sm:px-4 pt-3 pb-3.5 sm:py-4 relative z-10 space-y-3">
+          {/* Fila 1: Marca TECNI JIREH a la izquierda + Botones Compactos a la derecha */}
+          <div className="flex items-center justify-between gap-2">
             <div
               onClick={() => {
                 setSelectedCategory("todos");
@@ -384,124 +366,109 @@ function TecniJirehContent() {
                 setSearchQuery("");
                 router.replace("/", { scroll: false });
               }}
-              className="flex items-center gap-2.5 cursor-pointer group"
+              className="flex items-center gap-2 cursor-pointer group min-w-0"
             >
-              <div className="relative w-11 h-11 rounded-2xl bg-white/10 backdrop-blur-md border border-white/25 flex items-center justify-center shadow-md group-hover:scale-105 transition-transform">
-                <Settings className="w-6 h-6 text-[#00B4D8] animate-spin-slow" />
-                <Snowflake className="w-4 h-4 text-white absolute" />
+              <div className="relative w-9 h-9 sm:w-11 sm:h-11 rounded-2xl bg-white/10 backdrop-blur-md border border-white/25 flex items-center justify-center shadow-sm shrink-0">
+                <Settings className="w-5 h-5 sm:w-6 sm:h-6 text-[#00B4D8] animate-spin-slow" />
+                <Snowflake className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-white absolute" />
               </div>
-              <div>
-                <div className="flex items-center gap-1.5">
-                  <span className="text-xl sm:text-2xl font-black tracking-tight text-white">
+              <div className="min-w-0">
+                <div className="flex items-center gap-1">
+                  <span className="text-lg sm:text-2xl font-black tracking-tight text-white">
                     TECNI
                   </span>
-                  <span className="text-xl sm:text-2xl font-black tracking-tight text-[#00B4D8] drop-shadow">
+                  <span className="text-lg sm:text-2xl font-black tracking-tight text-[#00B4D8]">
                     JIREH
                   </span>
                 </div>
-                <p className="text-[11px] text-cyan-100 font-medium -mt-1">
-                  Servicios Técnicos al Instante
+                <p className="text-[10px] sm:text-[11px] text-cyan-100/90 font-medium -mt-1 truncate">
+                  Técnicos Verificados • Refrigeraciones Jireh
                 </p>
               </div>
             </div>
 
-            {/* Selector de Ciudad + Botón Panel Admin (SOLO visible si inició sesión admin@jireh.com) + Botón Activar Perfil */}
-            <div className="flex flex-wrap items-center gap-2 sm:gap-2.5">
-              {/* Selector de Ciudad */}
-              <div className="flex items-center bg-white/10 hover:bg-white/15 backdrop-blur-md border border-white/20 rounded-xl px-2.5 py-2">
-                <MapPin className="w-4 h-4 text-[#00B4D8] mr-1.5 shrink-0" />
-                <select
-                  value={selectedCity}
-                  onChange={(e) => setSelectedCity(e.target.value as JirehCity)}
-                  aria-label="Seleccionar ciudad"
-                  className="bg-transparent text-white text-xs sm:text-sm font-bold focus:outline-none cursor-pointer"
-                >
-                  <option value="Todas" className="text-slate-900">
-                    Todas las Ciudades
-                  </option>
-                  <option value="Maracay" className="text-slate-900">
-                    Maracay
-                  </option>
-                  <option value="Valencia" className="text-slate-900">
-                    Valencia
-                  </option>
-                  <option value="Caracas" className="text-slate-900">
-                    Caracas
-                  </option>
-                </select>
-              </div>
-
-              {/* El botón completo de Panel Admin en la barra principal SOLO se muestra cuando admin@jireh.com ha iniciado sesión */}
-              {isMasterAdminLogged && (
-                <button
-                  type="button"
-                  onClick={() => setIsAdminModalOpen(true)}
-                  className="bg-emerald-500/20 hover:bg-emerald-500/30 text-white border border-emerald-300/50 font-extrabold text-xs px-3.5 py-2.5 rounded-xl shadow-md flex items-center gap-1.5 transition-all active:scale-95"
-                >
-                  <SlidersHorizontal className="w-4 h-4 text-emerald-300 shrink-0" />
-                  <span>Panel Admin</span>
-                  <span className="bg-emerald-400 text-[#0A2540] px-1.5 py-0.2 rounded-md text-[10px] font-black">
-                    {filteredTechnicians.length}/{technicians.length}
-                  </span>
-                  {pendingApprovalCount > 0 && (
-                    <span className="bg-rose-500 text-white text-[10px] px-1.5 py-0.2 rounded-full animate-pulse">
-                      +{pendingApprovalCount}
-                    </span>
-                  )}
-                </button>
-              )}
-
-              {/* CTA Modal: Activar mi Perfil Técnico con mi Cédula VIP */}
+            {/* Acciones Derecha en una sola línea limpia */}
+            <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
               <button
                 type="button"
                 onClick={() => {
                   setVipModalInitialTab("validate");
                   setIsVipModalOpen(true);
                 }}
-                className="bg-gradient-to-r from-amber-400 to-amber-500 hover:from-amber-500 hover:to-amber-600 text-[#0A2540] font-extrabold text-xs px-3.5 py-2.5 rounded-xl shadow-md flex items-center gap-1.5 transition-transform active:scale-95"
+                className="bg-gradient-to-r from-amber-400 to-amber-500 hover:from-amber-500 hover:to-amber-600 text-[#0A2540] font-extrabold text-[11px] sm:text-xs px-3 py-2 rounded-xl shadow-md flex items-center gap-1.5 active:scale-95 transition-transform"
               >
-                <Award className="w-4 h-4 shrink-0" />
+                <Award className="w-3.5 h-3.5 shrink-0" />
                 <span className="hidden sm:inline">
                   Activar mi Perfil con Cédula VIP
                 </span>
-                <span className="sm:hidden">Soy Técnico VIP</span>
+                <span className="sm:hidden">Soy VIP</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setIsAdminModalOpen(true)}
+                className={`p-2 sm:px-3 sm:py-2 rounded-xl text-xs font-bold flex items-center gap-1 border transition-colors ${
+                  isMasterAdminLogged
+                    ? "bg-emerald-500/25 text-emerald-200 border-emerald-300/50"
+                    : "bg-white/10 hover:bg-white/20 text-cyan-100 border-white/15"
+                }`}
+                title="Panel Administrador (admin@jireh.com)"
+              >
+                <SlidersHorizontal className="w-3.5 h-3.5" />
+                <span className="hidden sm:inline">
+                  {isMasterAdminLogged ? "Panel Admin" : "Admin"}
+                </span>
+                {isMasterAdminLogged && pendingApprovalCount > 0 && (
+                  <span className="bg-rose-500 text-white text-[10px] px-1.5 rounded-full">
+                    +{pendingApprovalCount}
+                  </span>
+                )}
               </button>
             </div>
           </div>
 
-          {/* Buscador Central Estilo Airbnb ("¿Qué servicio necesitas hoy?") */}
+          {/* Fila 2: Buscador Estilo Airbnb con Selector de Ciudad Integrado */}
           <div className="max-w-3xl mx-auto">
-            <div className="bg-white rounded-2xl p-1.5 shadow-floating flex items-center gap-2 border-2 border-cyan-300/40">
-              <div className="pl-3 text-slate-400">
-                <Search className="w-5 h-5 text-[#00B4D8]" />
+            <div className="bg-white rounded-2xl p-1 sm:p-1.5 shadow-floating flex items-center gap-1.5 border border-cyan-200/40">
+              <div className="pl-2.5 text-[#00B4D8] shrink-0">
+                <Search className="w-4 h-4 sm:w-5 sm:h-5" />
               </div>
               <input
                 type="text"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="¿Qué servicio necesitas hoy? (Ej: Mi nevera no congela, Mantenimiento Split 12.000 BTU...)"
-                className="w-full py-2.5 px-1 text-slate-800 placeholder:text-slate-400 text-xs sm:text-sm font-medium focus:outline-none"
+                placeholder="Buscar falla, aire split, nevera o zona..."
+                className="w-full py-2 px-1 text-slate-800 placeholder:text-slate-400 text-xs sm:text-sm font-medium focus:outline-none min-w-0"
               />
               {searchQuery && (
                 <button
                   type="button"
                   onClick={() => setSearchQuery("")}
-                  className="text-xs text-slate-400 hover:text-slate-600 px-2"
+                  className="text-[11px] text-slate-400 hover:text-slate-600 px-1.5 shrink-0"
                 >
-                  Limpiar
+                  ✕
                 </button>
               )}
-              <button
-                type="button"
-                onClick={() => setViewMode("grid")}
-                className="bg-[#0A2540] hover:bg-[#12385E] text-white font-bold text-xs px-4 py-2.5 rounded-xl shrink-0 transition-colors hidden sm:flex items-center gap-1.5"
-              >
-                <span>Buscar</span>
-              </button>
+
+              {/* Selector de Ciudad Integrado dentro de la barra de búsqueda */}
+              <div className="flex items-center bg-slate-100 hover:bg-slate-200/70 rounded-xl px-2.5 py-1.5 shrink-0 border border-slate-200/80">
+                <MapPin className="w-3.5 h-3.5 text-[#0096C7] mr-1 shrink-0" />
+                <select
+                  value={selectedCity}
+                  onChange={(e) => setSelectedCity(e.target.value as JirehCity)}
+                  aria-label="Seleccionar ciudad"
+                  className="bg-transparent text-[#0A2540] text-[11px] sm:text-xs font-extrabold focus:outline-none cursor-pointer"
+                >
+                  <option value="Todas">Todas</option>
+                  <option value="Maracay">Maracay</option>
+                  <option value="Valencia">Valencia</option>
+                  <option value="Caracas">Caracas</option>
+                </select>
+              </div>
             </div>
 
-            {/* Chips Rápidos de Fallas Comunes */}
-            <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar pt-2.5 pb-0.5">
+            {/* Sugerencias rápidas solo en pantallas medianas/grandes para mantener limpio el smartphone */}
+            <div className="hidden sm:flex items-center gap-1.5 overflow-x-auto no-scrollbar pt-2">
               <span className="text-[11px] text-cyan-200 font-semibold shrink-0 mr-1">
                 Fallas frecuentes:
               </span>
@@ -513,7 +480,7 @@ function TecniJirehContent() {
                     setSearchQuery(item.query);
                     setSelectedCategory(item.category);
                   }}
-                  className="text-[11px] bg-white/10 hover:bg-white/20 backdrop-blur-sm text-white px-2.5 py-1 rounded-full whitespace-nowrap transition-colors border border-white/15"
+                  className="text-[11px] bg-white/10 hover:bg-white/20 text-white px-2.5 py-0.5 rounded-full whitespace-nowrap transition-colors border border-white/15"
                 >
                   {item.label}
                 </button>
