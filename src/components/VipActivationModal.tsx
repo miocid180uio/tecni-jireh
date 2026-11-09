@@ -408,8 +408,8 @@ export default function VipActivationModal({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#0A2540]/75 backdrop-blur-sm p-3 sm:p-4 overflow-y-auto">
-      <div className="relative w-full max-w-2xl bg-white rounded-3xl shadow-2xl overflow-hidden max-h-[94vh] flex flex-col animate-in fade-in zoom-in-95 duration-200">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#0A2540]/75 backdrop-blur-sm p-3 sm:p-4 pb-20 md:pb-4 overflow-y-auto">
+      <div className="relative w-full max-w-2xl bg-white rounded-3xl shadow-2xl overflow-hidden max-h-[calc(100vh-5.5rem)] sm:max-h-[92vh] flex flex-col animate-in fade-in zoom-in-95 duration-200">
         {/* Cabecera con Selector de Pestañas */}
         <div className="bg-gradient-to-r from-[#0A2540] via-[#0e3358] to-[#00B4D8] p-5 text-white relative shrink-0">
           <button

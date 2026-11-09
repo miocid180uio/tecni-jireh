@@ -61,10 +61,10 @@ export default function SparePartQuoteModal({
   });
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#0A2540]/75 backdrop-blur-sm p-4 overflow-y-auto">
-      <div className="relative w-full max-w-lg bg-white rounded-3xl shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+    <div className="fixed inset-0 z-50 flex items-start sm:items-center justify-center bg-[#0A2540]/75 backdrop-blur-sm p-3 sm:p-4 pb-20 md:pb-4 overflow-y-auto">
+      <div className="relative w-full max-w-lg bg-white rounded-3xl shadow-2xl overflow-hidden my-auto max-h-[calc(100vh-5.5rem)] sm:max-h-[90vh] flex flex-col animate-in fade-in zoom-in-95 duration-200">
         {/* Cabecera Corporativa RefriJireh */}
-        <div className="bg-gradient-to-r from-[#0A2540] via-[#12385E] to-[#0096C7] p-5 text-white relative">
+        <div className="bg-gradient-to-r from-[#0A2540] via-[#12385E] to-[#0096C7] p-4 sm:p-5 text-white relative shrink-0">
           <button
             type="button"
             onClick={onClose}
@@ -77,7 +77,7 @@ export default function SparePartQuoteModal({
             <ShoppingBag className="w-4 h-4" />
             <span>Sincronización Tienda Oficial refrijireh.com</span>
           </div>
-          <h3 className="text-xl font-extrabold">
+          <h3 className="text-lg sm:text-xl font-extrabold">
             Cotizar Repuesto en RefriJireh
           </h3>
           <p className="text-xs text-cyan-100 mt-1">
@@ -87,7 +87,7 @@ export default function SparePartQuoteModal({
           </p>
         </div>
 
-        <div className="p-5 space-y-4">
+        <div className="p-4 sm:p-5 space-y-4 overflow-y-auto flex-1">
           {/* Banner de Código VIP Vinculado */}
           <div className="bg-amber-50 border border-amber-200 rounded-2xl p-3.5 flex items-center justify-between gap-3">
             <div className="flex items-center gap-2.5">

@@ -17,6 +17,8 @@ import {
   ChevronDown,
   Building2,
   Wrench,
+  Search,
+  CreditCard,
 } from "lucide-react";
 
 interface JirehLocationBranch {
@@ -319,7 +321,7 @@ function LocationsContent() {
         </div>
 
         {/* Botón Inferior de Regreso a la Página Principal de TECNI JIREH */}
-        <div className="pt-1 flex items-center justify-between gap-3">
+        <div className="pt-1 pb-20 md:pb-4 flex items-center justify-between gap-3">
           <Link
             href="/"
             className="w-full sm:w-auto inline-flex items-center justify-center gap-2 bg-white hover:bg-slate-100 text-[#0A2540] border border-slate-300 font-extrabold text-xs sm:text-sm px-5 py-3 rounded-2xl shadow-sm transition-all"
@@ -339,6 +341,50 @@ function LocationsContent() {
           </a>
         </div>
       </main>
+
+      {/* =====================================================================
+          BOTTOM NAVIGATION BAR (SIEMPRE VISIBLE CON LAS 4 OPCIONES)
+          Explorar | Mapa | Pedir Repuesto | Mi Tarjeta VIP
+         ===================================================================== */}
+      <nav className="md:hidden fixed bottom-0 left-0 right-0 z-[70] bg-white/95 backdrop-blur-md border-t border-slate-200 px-2 py-1.5 shadow-[0_-4px_20px_rgba(10,37,64,0.12)]">
+        <div className="grid grid-cols-4 gap-1 max-w-md mx-auto">
+          <Link
+            href="/"
+            className="flex flex-col items-center justify-center py-1 rounded-xl text-slate-500 hover:text-[#0A2540] transition-colors"
+          >
+            <Search className="w-5 h-5" />
+            <span className="text-[10px] mt-0.5">Explorar</span>
+          </Link>
+
+          <Link
+            href="/?vista=mapa"
+            className="flex flex-col items-center justify-center py-1 rounded-xl text-slate-500 hover:text-[#0A2540] transition-colors"
+          >
+            <MapPin className="w-5 h-5" />
+            <span className="text-[10px] mt-0.5">Mapa</span>
+          </Link>
+
+          <Link
+            href="/?cotizar=1"
+            className="flex flex-col items-center justify-center py-1 rounded-xl text-[#00B4D8] font-bold transition-colors"
+          >
+            <Wrench className="w-5 h-5 text-[#00B4D8]" />
+            <span className="text-[10px] mt-0.5 font-semibold">
+              Pedir Repuesto
+            </span>
+          </Link>
+
+          <a
+            href="https://clientes-jireh-vip.vercel.app"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex flex-col items-center justify-center py-1 rounded-xl text-amber-600 hover:text-amber-700 font-bold transition-colors"
+          >
+            <CreditCard className="w-5 h-5" />
+            <span className="text-[10px] mt-0.5">Mi Tarjeta VIP</span>
+          </a>
+        </div>
+      </nav>
     </div>
   );
 }

@@ -101,8 +101,8 @@ export default function TechnicianDetailModal({
   });
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-[#0A2540]/70 backdrop-blur-sm p-0 sm:p-4 overflow-y-auto">
-      <div className="relative w-full max-w-2xl bg-white rounded-t-3xl sm:rounded-3xl shadow-2xl overflow-hidden max-h-[92vh] flex flex-col animate-in fade-in zoom-in-95 duration-200">
+    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-[#0A2540]/70 backdrop-blur-sm p-0 sm:p-4 pb-16 md:pb-4 overflow-y-auto">
+      <div className="relative w-full max-w-2xl bg-white rounded-t-3xl sm:rounded-3xl shadow-2xl overflow-hidden max-h-[calc(100vh-4.25rem)] sm:max-h-[92vh] flex flex-col animate-in fade-in zoom-in-95 duration-200">
         {/* Cabecera con Foto y Perfil */}
         <div className="relative h-56 sm:h-64 w-full shrink-0 bg-[#0A2540]">
           <img

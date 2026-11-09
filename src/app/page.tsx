@@ -139,11 +139,13 @@ function TecniJirehContent() {
     };
   }, []);
 
-  // 2. Sincronización automática con enlaces desde Historias de Instagram (@refrigeracionesjireh)
+  // 2. Sincronización automática con enlaces desde Historias de Instagram o AppBar
   useEffect(() => {
     const catParam = searchParams.get("categoria")?.toLowerCase();
     const zonaParam = searchParams.get("zona")?.toLowerCase();
     const qParam = searchParams.get("q");
+    const vistaParam = searchParams.get("vista")?.toLowerCase();
+    const cotizarParam = searchParams.get("cotizar");
 
     if (catParam) {
       const validCat = SERVICE_CATEGORIES.find((c) => c.id === catParam);
@@ -161,6 +163,16 @@ function TecniJirehContent() {
 
     if (qParam) {
       setSearchQuery(qParam);
+    }
+
+    if (vistaParam === "mapa") {
+      setViewMode("map");
+    } else if (vistaParam === "lista") {
+      setViewMode("grid");
+    }
+
+    if (cotizarParam === "1") {
+      setIsPartQuoteModalOpen(true);
     }
   }, [searchParams]);
 
@@ -966,16 +978,22 @@ function TecniJirehContent() {
       </button>
 
       {/* =====================================================================
-          7. BOTTOM NAVIGATION BAR (MÓVIL - ESTILO PWA AIRBNB)
-          Explorar | Mapa | Pedir Repuesto (refrijireh.com) | Mi Tarjeta VIP
+          7. BOTTOM NAVIGATION BAR (SIEMPRE VISIBLE EN TODAS LAS VISTAS Y MODALES)
+          Explorar | Mapa | Pedir Repuesto | Mi Tarjeta VIP
          ===================================================================== */}
-      <nav className="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-md border-t border-slate-200 px-2 py-1.5 shadow-lg">
+      <nav className="md:hidden fixed bottom-0 left-0 right-0 z-[70] bg-white/95 backdrop-blur-md border-t border-slate-200 px-2 py-1.5 shadow-[0_-4px_20px_rgba(10,37,64,0.12)]">
         <div className="grid grid-cols-4 gap-1 max-w-md mx-auto">
           <button
             type="button"
-            onClick={() => setViewMode("grid")}
+            onClick={() => {
+              setIsPartQuoteModalOpen(false);
+              setSelectedTechnician(null);
+              setIsVipModalOpen(false);
+              setIsAdminModalOpen(false);
+              setViewMode("grid");
+            }}
             className={`flex flex-col items-center justify-center py-1 rounded-xl transition-colors ${
-              viewMode === "grid"
+              viewMode === "grid" && !isPartQuoteModalOpen
                 ? "text-[#00B4D8] font-bold"
                 : "text-slate-500 hover:text-[#0A2540]"
             }`}
@@ -986,9 +1004,15 @@ function TecniJirehContent() {
 
           <button
             type="button"
-            onClick={() => setViewMode(viewMode === "map" ? "grid" : "map")}
+            onClick={() => {
+              setIsPartQuoteModalOpen(false);
+              setSelectedTechnician(null);
+              setIsVipModalOpen(false);
+              setIsAdminModalOpen(false);
+              setViewMode("map");
+            }}
             className={`flex flex-col items-center justify-center py-1 rounded-xl transition-colors ${
-              viewMode === "map"
+              viewMode === "map" && !isPartQuoteModalOpen
                 ? "text-[#00B4D8] font-bold"
                 : "text-slate-500 hover:text-[#0A2540]"
             }`}
@@ -1000,12 +1024,23 @@ function TecniJirehContent() {
           <button
             type="button"
             onClick={() => {
+              setSelectedTechnician(null);
+              setIsVipModalOpen(false);
+              setIsAdminModalOpen(false);
               setQuoteModalTech(null);
               setIsPartQuoteModalOpen(true);
             }}
-            className="flex flex-col items-center justify-center py-1 rounded-xl text-slate-500 hover:text-[#0A2540] transition-colors"
+            className={`flex flex-col items-center justify-center py-1 rounded-xl transition-colors ${
+              isPartQuoteModalOpen
+                ? "text-[#00B4D8] font-bold"
+                : "text-slate-500 hover:text-[#0A2540]"
+            }`}
           >
-            <Wrench className="w-5 h-5 text-[#0096C7]" />
+            <Wrench
+              className={`w-5 h-5 ${
+                isPartQuoteModalOpen ? "text-[#00B4D8]" : "text-[#0096C7]"
+              }`}
+            />
             <span className="text-[10px] mt-0.5 font-semibold">
               Pedir Repuesto
             </span>
