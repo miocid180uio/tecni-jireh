@@ -700,7 +700,15 @@ export function buildRefriJirehPartQuoteLinks(params: {
     .filter(Boolean)
     .join("\n");
 
-  const whatsappUrl = "https://refrijireh.com/locations";
+  const internalParams = new URLSearchParams();
+  if (params.repuesto) internalParams.set("repuesto", params.repuesto);
+  if (params.equipo) internalParams.set("equipo", params.equipo);
+  if (params.tecnicoNombre)
+    internalParams.set("tecnico", params.tecnicoNombre);
+  if (codigo) internalParams.set("vip_code", codigo);
+
+  const queryString = internalParams.toString();
+  const whatsappUrl = queryString ? `/locations?${queryString}` : "/locations";
 
   return {
     webUrl: webUrl.toString(),

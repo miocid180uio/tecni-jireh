@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
+import Link from "next/link";
 import {
   X,
   Wrench,
@@ -194,17 +195,16 @@ export default function SparePartQuoteModal({
             )}
           </div>
 
-          {/* Botones de Acción hacia WhatsApp RefriJireh y Web Oficial */}
+          {/* Botones de Acción hacia Página Interna de Sedes (/locations) y Web Oficial */}
           <div className="pt-2 space-y-2.5">
-            <a
-              href="https://refrijireh.com/locations"
-              target="_blank"
-              rel="noopener noreferrer"
+            <Link
+              href={links.whatsappUrl}
+              onClick={onClose}
               className="w-full py-3 px-4 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white font-extrabold text-sm shadow-lg flex items-center justify-center gap-2 transition-all"
             >
               <MessageCircle className="w-5 h-5" />
               <span>Cotizar por WhatsApp de Ventas RefriJireh</span>
-            </a>
+            </Link>
 
             <a
               href={links.webUrl}
