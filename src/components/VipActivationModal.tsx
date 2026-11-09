@@ -544,37 +544,6 @@ export default function VipActivationModal({
                       <span>Consultar Ficha</span>
                     </button>
                   </div>
-
-                  {/* Cédulas reales del Top 10 en un clic para consulta rápida */}
-                  <div className="bg-slate-50 border border-slate-200/80 rounded-xl p-2.5">
-                    <p className="text-[11px] font-semibold text-slate-500 mb-1.5">
-                      💡 Técnicos del Ranking VIP (clic para consultar su ficha en Modo Lectura):
-                    </p>
-                    <div className="flex flex-wrap gap-1.5">
-                      {MOCK_VIP_CLIENTS.slice(0, 6).map((vip, idx) => (
-                        <button
-                          key={vip.id}
-                          type="button"
-                          onClick={() => {
-                            setIdentifierInput(vip.cedula);
-                            handleLookupVip(undefined, vip.cedula);
-                          }}
-                          className="text-[11px] bg-white hover:bg-cyan-50 border border-slate-200 hover:border-cyan-300 text-[#0A2540] px-2.5 py-1 rounded-lg font-medium transition-colors flex items-center gap-1"
-                        >
-                          <span className="font-bold text-amber-600">
-                            #{idx + 1}
-                          </span>
-                          <span className="font-mono font-bold text-[#0096C7]">
-                            {vip.cedula}
-                          </span>
-                          <span className="text-slate-500">
-                            ({vip.nombreCompleto.split(" ")[0]} •{" "}
-                            {vip.puntosAcumulados.toFixed(2)} pts)
-                          </span>
-                        </button>
-                      ))}
-                    </div>
-                  </div>
                 </form>
               ) : (
                 <form
@@ -705,7 +674,7 @@ export default function VipActivationModal({
                           {activeOwner &&
                           activeOwner.cedula.replace(/\D/g, "") !==
                             foundVip.cedula.replace(/\D/g, "")
-                            ? `Has iniciado sesión como ${activeOwner.nombreCompleto} (CI: ${activeOwner.cedula}). Por seguridad, no puedes modificar ni corregir los datos de otro técnico.`
+                            ? `Has iniciado sesión como ${activeOwner.nombreCompleto}. Por seguridad, no puedes modificar ni corregir los datos de otro técnico.`
                             : `Estás visualizando los datos de ${foundVip.nombreCompleto} en modo lectura. Para modificar o corregir esta ficha debes iniciar sesión con el correo y clave de este titular en Firebase o como admin@jireh.com.`}
                         </p>
                       </div>
@@ -763,7 +732,9 @@ export default function VipActivationModal({
                         Puntos VIP Protegidos (Solo Lectura)
                       </span>
                       <span className="text-xs font-mono font-bold text-amber-300">
-                        CI/RUC: {foundVip.cedula}
+                        {canModifyData
+                          ? `CI/RUC: ${foundVip.cedula}`
+                          : "Documento Protegido 🔒"}
                       </span>
                     </div>
 

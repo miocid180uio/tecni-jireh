@@ -82,11 +82,11 @@ export default function TechnicianCard({
           />
           <div className="absolute inset-0 bg-gradient-to-t from-[#0A2540]/85 via-[#0A2540]/20 to-black/15" />
 
-          {/* Badge Superior Izquierdo con Cédula / Sede */}
+          {/* Badge Superior Izquierdo con Sede Jireh (Sin publicar Cédula por privacidad) */}
           {technician.sedeJireh && (
             <div className="absolute top-2.5 left-2.5 max-w-[62%]">
               <span className="block truncate bg-[#0A2540]/85 backdrop-blur-md text-cyan-200 border border-white/15 px-2.5 py-1 rounded-full text-[10px] font-bold shadow-sm">
-                {technician.sedeJireh} • CI: {technician.cedula}
+                {technician.sedeJireh}
               </span>
             </div>
           )}

@@ -115,7 +115,7 @@ export const MOCK_VIP_CLIENTS: JirehVipClient[] = [
     comprasAcumuladasUSD: 3390.35,
     sedeFrecuente: "Principal",
     nivelVip: "Diamante Jireh",
-    codigoReferidoVip: "VIP-23790219",
+    codigoReferidoVip: "VIP-TOP-01",
     fechaRegistro: "2024-01-10",
     activo: true,
   },
@@ -130,7 +130,7 @@ export const MOCK_VIP_CLIENTS: JirehVipClient[] = [
     comprasAcumuladasUSD: 3585.56,
     sedeFrecuente: "Campo",
     nivelVip: "Diamante Jireh",
-    codigoReferidoVip: "VIP-13858258",
+    codigoReferidoVip: "VIP-TOP-02",
     fechaRegistro: "2024-01-12",
     activo: true,
   },
@@ -145,7 +145,7 @@ export const MOCK_VIP_CLIENTS: JirehVipClient[] = [
     comprasAcumuladasUSD: 2959.32,
     sedeFrecuente: "Jabillos",
     nivelVip: "Diamante Jireh",
-    codigoReferidoVip: "VIP-11090750",
+    codigoReferidoVip: "VIP-TOP-03",
     fechaRegistro: "2024-02-01",
     activo: true,
   },
@@ -160,7 +160,7 @@ export const MOCK_VIP_CLIENTS: JirehVipClient[] = [
     comprasAcumuladasUSD: 2112.93,
     sedeFrecuente: "Sucre",
     nivelVip: "Diamante Jireh",
-    codigoReferidoVip: "VIP-30294075",
+    codigoReferidoVip: "VIP-TOP-04",
     fechaRegistro: "2024-02-14",
     activo: true,
   },
@@ -175,7 +175,7 @@ export const MOCK_VIP_CLIENTS: JirehVipClient[] = [
     comprasAcumuladasUSD: 1844.0,
     sedeFrecuente: "Principal",
     nivelVip: "Oro",
-    codigoReferidoVip: "VIP-27611548",
+    codigoReferidoVip: "VIP-TOP-05",
     fechaRegistro: "2024-03-01",
     activo: true,
   },
@@ -190,7 +190,7 @@ export const MOCK_VIP_CLIENTS: JirehVipClient[] = [
     comprasAcumuladasUSD: 1629.81,
     sedeFrecuente: "Campo",
     nivelVip: "Oro",
-    codigoReferidoVip: "VIP-9646546",
+    codigoReferidoVip: "VIP-TOP-06",
     fechaRegistro: "2024-03-15",
     activo: true,
   },
@@ -205,7 +205,7 @@ export const MOCK_VIP_CLIENTS: JirehVipClient[] = [
     comprasAcumuladasUSD: 1604.29,
     sedeFrecuente: "Jabillos",
     nivelVip: "Oro",
-    codigoReferidoVip: "VIP-15863216",
+    codigoReferidoVip: "VIP-TOP-07",
     fechaRegistro: "2024-04-02",
     activo: true,
   },
@@ -220,7 +220,7 @@ export const MOCK_VIP_CLIENTS: JirehVipClient[] = [
     comprasAcumuladasUSD: 1049.5,
     sedeFrecuente: "Sucre",
     nivelVip: "Oro",
-    codigoReferidoVip: "VIP-12117381",
+    codigoReferidoVip: "VIP-TOP-08",
     fechaRegistro: "2024-04-18",
     activo: true,
   },
@@ -235,7 +235,7 @@ export const MOCK_VIP_CLIENTS: JirehVipClient[] = [
     comprasAcumuladasUSD: 1281.98,
     sedeFrecuente: "Principal",
     nivelVip: "Plata",
-    codigoReferidoVip: "VIP-11775583",
+    codigoReferidoVip: "VIP-TOP-09",
     fechaRegistro: "2024-05-05",
     activo: true,
   },
@@ -250,7 +250,7 @@ export const MOCK_VIP_CLIENTS: JirehVipClient[] = [
     comprasAcumuladasUSD: 1501.0,
     sedeFrecuente: "Jabillos",
     nivelVip: "Plata",
-    codigoReferidoVip: "VIP-22510300",
+    codigoReferidoVip: "VIP-TOP-10",
     fechaRegistro: "2024-05-19",
     activo: true,
   },
@@ -286,7 +286,7 @@ export const MOCK_TECHNICIANS: TechnicianProfile[] = [
     esVipVerificado: true,
     puntosJirehVip: 71.77,
     nivelVip: "Diamante Jireh",
-    codigoVipRefriJireh: "VIP-23790219",
+    codigoVipRefriJireh: "VIP-TOP-01",
     insigniaRapida: "Top VIP",
     coordenadas: {
       lat: 10.2647,
@@ -342,7 +342,7 @@ export const MOCK_TECHNICIANS: TechnicianProfile[] = [
     esVipVerificado: true,
     puntosJirehVip: 71.0,
     nivelVip: "Diamante Jireh",
-    codigoVipRefriJireh: "VIP-13858258",
+    codigoVipRefriJireh: "VIP-TOP-02",
     insigniaRapida: "Top VIP",
     coordenadas: {
       lat: 10.2512,
@@ -394,7 +394,7 @@ export const MOCK_TECHNICIANS: TechnicianProfile[] = [
     esVipVerificado: true,
     puntosJirehVip: 60.18,
     nivelVip: "Diamante Jireh",
-    codigoVipRefriJireh: "VIP-11090750",
+    codigoVipRefriJireh: "VIP-TOP-03",
     insigniaRapida: "Verificado",
     coordenadas: {
       lat: 10.245,
@@ -446,7 +446,7 @@ export const MOCK_TECHNICIANS: TechnicianProfile[] = [
     esVipVerificado: true,
     puntosJirehVip: 51.15,
     nivelVip: "Diamante Jireh",
-    codigoVipRefriJireh: "VIP-30294075",
+    codigoVipRefriJireh: "VIP-TOP-04",
     insigniaRapida: "Rápido",
     coordenadas: {
       lat: 10.2145,
@@ -498,7 +498,7 @@ export const MOCK_TECHNICIANS: TechnicianProfile[] = [
     esVipVerificado: true,
     puntosJirehVip: 42.25,
     nivelVip: "Oro",
-    codigoVipRefriJireh: "VIP-27611548",
+    codigoVipRefriJireh: "VIP-TOP-05",
     insigniaRapida: "Verificado",
     coordenadas: {
       lat: 10.258,
@@ -549,7 +549,7 @@ export const MOCK_TECHNICIANS: TechnicianProfile[] = [
     esVipVerificado: true,
     puntosJirehVip: 32.94,
     nivelVip: "Oro",
-    codigoVipRefriJireh: "VIP-9646546",
+    codigoVipRefriJireh: "VIP-TOP-06",
     insigniaRapida: "Maestro Frío",
     coordenadas: {
       lat: 10.2289,
@@ -600,7 +600,7 @@ export const MOCK_TECHNICIANS: TechnicianProfile[] = [
     esVipVerificado: true,
     puntosJirehVip: 31.9,
     nivelVip: "Oro",
-    codigoVipRefriJireh: "VIP-15863216",
+    codigoVipRefriJireh: "VIP-TOP-07",
     insigniaRapida: "Verificado",
     coordenadas: {
       lat: 10.4961,
@@ -651,7 +651,7 @@ export const MOCK_TECHNICIANS: TechnicianProfile[] = [
     esVipVerificado: true,
     puntosJirehVip: 31.49,
     nivelVip: "Oro",
-    codigoVipRefriJireh: "VIP-12117381",
+    codigoVipRefriJireh: "VIP-TOP-08",
     insigniaRapida: "Verificado",
     coordenadas: {
       lat: 10.262,
@@ -702,7 +702,7 @@ export const MOCK_TECHNICIANS: TechnicianProfile[] = [
     esVipVerificado: true,
     puntosJirehVip: 29.92,
     nivelVip: "Plata",
-    codigoVipRefriJireh: "VIP-11775583",
+    codigoVipRefriJireh: "VIP-TOP-09",
     insigniaRapida: "Verificado",
     coordenadas: {
       lat: 10.205,
@@ -753,7 +753,7 @@ export const MOCK_TECHNICIANS: TechnicianProfile[] = [
     esVipVerificado: true,
     puntosJirehVip: 29.0,
     nivelVip: "Plata",
-    codigoVipRefriJireh: "VIP-22510300",
+    codigoVipRefriJireh: "VIP-TOP-10",
     insigniaRapida: "Rápido",
     coordenadas: {
       lat: 10.5015,
@@ -837,6 +837,8 @@ ADDITIONAL_VIP_ROSTER.forEach((item) => {
       ? "Plata"
       : "Bronce";
 
+  const safeVipCode = `VIP-TOP-${String(item.rank).padStart(2, "0")}`;
+
   MOCK_VIP_CLIENTS.push({
     id: `vip-top-${item.rank}`,
     cedula: item.cedula,
@@ -848,7 +850,7 @@ ADDITIONAL_VIP_ROSTER.forEach((item) => {
     comprasAcumuladasUSD: 0,
     sedeFrecuente: item.sede,
     nivelVip: nivel,
-    codigoReferidoVip: `VIP-${item.cedula}`,
+    codigoReferidoVip: safeVipCode,
     fechaRegistro: "2024-06-15",
     activo: true,
   });
@@ -881,7 +883,7 @@ ADDITIONAL_VIP_ROSTER.forEach((item) => {
     esVipVerificado: true,
     puntosJirehVip: item.puntos,
     nivelVip: nivel,
-    codigoVipRefriJireh: `VIP-${item.cedula}`,
+    codigoVipRefriJireh: safeVipCode,
     insigniaRapida: item.rank <= 20 ? "Verificado" : "Rápido",
     coordenadas: {
       lat: 10.25 + (item.rank % 6) * 0.01,

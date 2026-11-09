@@ -125,7 +125,7 @@ export async function findVipClientByCedulaOrPhone(
             puntosAcumulados: Number(puntos.toFixed(2)),
             comprasAcumuladasUSD: Number(compras.toFixed(2)),
             nivelVip: calculateVipTier(puntos),
-            codigoReferidoVip: docData.codigoReferidoVip || `VIP-${cleanId}`,
+            codigoReferidoVip: "VIP-JIREH",
             fechaRegistro: String(docData.createdAt || "2024-01-01"),
             activo: true,
           };
@@ -207,7 +207,7 @@ export async function authenticateExistingVipUser(
           puntosAcumulados: pts,
           comprasAcumuladasUSD: spent,
           nivelVip: calculateVipTier(pts),
-          codigoReferidoVip: `VIP-${ci}`,
+          codigoReferidoVip: "VIP-JIREH",
           fechaRegistro: String(data.createdAt || "2024-01-01"),
           activo: true,
         },
@@ -245,7 +245,7 @@ export async function authenticateExistingVipUser(
           puntosAcumulados: pts,
           comprasAcumuladasUSD: spent,
           nivelVip: calculateVipTier(pts),
-          codigoReferidoVip: `VIP-${ci}`,
+          codigoReferidoVip: "VIP-JIREH",
           fechaRegistro: String(data.createdAt || "2024-01-01"),
           activo: true,
         },
@@ -293,6 +293,7 @@ export async function getSyncedTechnicians(): Promise<TechnicianProfile[]> {
           const pts = Number(parseFloat(data.points || 0).toFixed(2));
           const spent = Number(parseFloat(data.totalSpent || 0).toFixed(2));
           const tier = calculateVipTier(pts);
+          const safeRankCode = `VIP-TOP-${String(idx + 1).padStart(2, "0")}`;
 
           const existingIndex = baseList.findIndex(
             (t) => normalizeIdentifier(t.cedula) === ciClean
@@ -307,6 +308,7 @@ export async function getSyncedTechnicians(): Promise<TechnicianProfile[]> {
               comprasAcumuladasUSD: spent,
               esVipVerificado: true,
               nivelVip: tier,
+              codigoVipRefriJireh: safeRankCode,
             };
           } else if (idx < baseList.length && ciClean) {
             // Sincronizar ranura #idx con el usuario real de Firebase manteniendo plantilla visual
@@ -321,7 +323,7 @@ export async function getSyncedTechnicians(): Promise<TechnicianProfile[]> {
               comprasAcumuladasUSD: spent,
               esVipVerificado: true,
               nivelVip: tier,
-              codigoVipRefriJireh: `VIP-${ciClean}`,
+              codigoVipRefriJireh: safeRankCode,
               etiquetaDestacada: `Top #${idx + 1} VIP • ${
                 slotTemplate.etiquetaDestacada.split("•")[1]?.trim() ||
                 "Refrigeración & Aires Split"
@@ -574,7 +576,7 @@ export async function registerNewJirehEcosystemMember(
     puntosAcumulados: 0,
     comprasAcumuladasUSD: 0,
     nivelVip: "Bronce",
-    codigoReferidoVip: `VIP-${cleanCedula}`,
+    codigoReferidoVip: "VIP-JIREH",
     fechaRegistro: new Date().toISOString().split("T")[0],
     activo: true,
   };
@@ -620,7 +622,7 @@ export async function registerNewJirehEcosystemMember(
       puntosJirehVip: 0,
       comprasAcumuladasUSD: 0,
       nivelVip: "Bronce",
-      codigoVipRefriJireh: `VIP-${cleanCedula}`,
+      codigoVipRefriJireh: "VIP-JIREH",
       estadoPublicacion: "pendiente",
       fechaSolicitud: "Hoy",
       insigniaRapida: "Verificado",
@@ -676,9 +678,7 @@ export function buildRefriJirehPartQuoteLinks(params: {
   equipo?: string;
   ciudad?: string;
 }) {
-  const codigo =
-    params.codigoVip ||
-    (params.cedula ? `VIP-${params.cedula}` : "CLIENTE-WEB");
+  const codigo = params.codigoVip || "VIP-JIREH";
   const webUrl = new URL("https://www.refrijireh.com/");
   webUrl.searchParams.set("utm_source", "tecni_jireh_pwa");
   webUrl.searchParams.set("vip_code", codigo);
