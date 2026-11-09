@@ -19,7 +19,7 @@ import {
   Wrench,
 } from "lucide-react";
 
-export interface JirehLocationBranch {
+interface JirehLocationBranch {
   id: "campo-alegre" | "sucre" | "los-jabillos";
   name: string;
   fullName: string;
@@ -32,7 +32,7 @@ export interface JirehLocationBranch {
   schedule: string;
 }
 
-export const REFRIJIREH_LOCATIONS: JirehLocationBranch[] = [
+const REFRIJIREH_LOCATIONS: JirehLocationBranch[] = [
   {
     id: "campo-alegre",
     name: "Campo Alegre",
