@@ -324,9 +324,8 @@ export default function InteractiveMapView({
                     ${activeTech.tarifaDiagnosticoUSD}{" "}
                     {activeTech.modalidadTarifa}
                   </span>
-                  <span className="text-amber-500 flex items-center gap-0.5">
-                    <Star className="w-3 h-3 fill-amber-400 text-amber-400" />
-                    {activeTech.calificacion.toFixed(1)}
+                  <span className="text-amber-600 font-extrabold">
+                    • {activeTech.puntosJirehVip.toFixed(2)} PTS
                   </span>
                 </div>
               </div>

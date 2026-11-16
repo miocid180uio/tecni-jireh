@@ -91,7 +91,7 @@ export default function TechnicianCard({
             </div>
           )}
 
-          {/* Badge Superior Derecho (Verificado / Rápido) */}
+          {/* Badge Superior Derecho (Verificado / Top VIP) */}
           <div className="absolute top-2.5 right-2.5 flex flex-col items-end gap-1">
             {technician.insigniaRapida && (
               <span
@@ -106,16 +106,9 @@ export default function TechnicianCard({
                 {technician.insigniaRapida}
               </span>
             )}
-
-            {technician.disponibleUrgenciasHoy && (
-              <span className="bg-white/95 text-[#0A2540] px-2 py-0.5 rounded-full text-[10px] font-bold shadow-sm flex items-center gap-1">
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                ~{technician.tiempoRespuestaMin} min
-              </span>
-            )}
           </div>
 
-          {/* Ciudad y Zonas sobre la parte baja de la foto */}
+          {/* Ciudad y Nombre sobre la parte baja de la foto */}
           <div className="absolute bottom-2.5 left-3 right-3 flex items-end justify-between gap-2 text-white">
             <div className="min-w-0 flex-1">
               <div className="flex items-center gap-1 text-[11px] font-medium text-cyan-200 truncate">
@@ -131,14 +124,6 @@ export default function TechnicianCard({
                   <ShieldCheck className="w-4 h-4 text-[#00B4D8] fill-white shrink-0" />
                 )}
               </h3>
-            </div>
-
-            <div className="bg-white/95 text-[#0A2540] px-2.5 py-1 rounded-xl flex items-center gap-1 shadow-md font-bold text-xs shrink-0">
-              <Star className="w-3.5 h-3.5 fill-amber-400 text-amber-400" />
-              <span>{technician.calificacion.toFixed(1)}</span>
-              <span className="text-slate-400 font-normal text-[10px]">
-                ({technician.totalResenas})
-              </span>
             </div>
           </div>
         </div>

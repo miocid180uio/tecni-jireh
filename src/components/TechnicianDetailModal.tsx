@@ -134,8 +134,7 @@ export default function TechnicianDetailModal({
               <div className="flex items-center gap-2 text-xs text-cyan-300 font-semibold">
                 <MapPin className="w-3.5 h-3.5" />
                 <span>
-                  {technician.ciudad} • {technician.anosExperiencia} años de
-                  experiencia
+                  {technician.ciudad} • {technician.sedeJireh || "Sede Principal"}
                 </span>
               </div>
               <h2 className="text-2xl font-extrabold flex items-center gap-2 mt-0.5">
@@ -151,12 +150,11 @@ export default function TechnicianDetailModal({
 
             <div className="bg-white/15 backdrop-blur-md border border-white/20 rounded-2xl px-3.5 py-2 flex items-center gap-3 self-start sm:self-end">
               <div>
-                <div className="flex items-center gap-1 text-amber-300 font-bold text-sm">
-                  <Star className="w-4 h-4 fill-amber-300" />
-                  <span>{technician.calificacion.toFixed(2)}</span>
-                </div>
+                <p className="text-sm font-extrabold text-amber-300">
+                  {technician.puntosJirehVip.toFixed(2)} PTS
+                </p>
                 <p className="text-[10px] text-slate-200">
-                  {technician.totalResenas} reseñas
+                  {technician.nivelVip || "VIP Jireh"}
                 </p>
               </div>
               <div className="h-7 w-px bg-white/20" />
@@ -288,15 +286,15 @@ export default function TechnicianDetailModal({
             <div className="grid grid-cols-3 gap-2.5 pt-2">
               <div className="bg-slate-50 border border-slate-200/70 rounded-xl p-3 text-center">
                 <p className="text-base font-extrabold text-[#0A2540]">
-                  +{technician.trabajosCompletados}
+                  {technician.puntosJirehVip.toFixed(2)} PTS
                 </p>
-                <p className="text-[11px] text-slate-500">Servicios Éxitosos</p>
+                <p className="text-[11px] text-slate-500">Puntos Club VIP</p>
               </div>
               <div className="bg-slate-50 border border-slate-200/70 rounded-xl p-3 text-center">
-                <p className="text-base font-extrabold text-[#0096C7]">
-                  ~{technician.tiempoRespuestaMin} min
+                <p className="text-base font-extrabold text-[#0096C7] truncate">
+                  {technician.sedeJireh || "Sede Principal"}
                 </p>
-                <p className="text-[11px] text-slate-500">Tiempo Respuesta</p>
+                <p className="text-[11px] text-slate-500">Sede Frecuente</p>
               </div>
               <div className="bg-slate-50 border border-slate-200/70 rounded-xl p-3 text-center">
                 <p className="text-base font-extrabold text-emerald-600">
