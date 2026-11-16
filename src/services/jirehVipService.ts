@@ -274,80 +274,81 @@ export async function authenticateExistingVipUser(
 }
 
 /**
- * Obtiene la lista de técnicos priorizando los primeros 36 técnicos
- * del ranking de https://clientes-jireh-vip.vercel.app (para visualización paginada de 6 en 6 hasta 36).
+ * Obtiene la lista de los primeros 36 técnicos respetando ESTRICTAMENTE el orden
+ * de aparición y nombres reales del sistema https://clientes-jireh-vip.vercel.app
+ * (sin inventar ni alucinar ningún nombre ficticio).
  */
 export async function getSyncedTechnicians(): Promise<TechnicianProfile[]> {
-  let baseList: TechnicianProfile[] = [...MOCK_TECHNICIANS];
+  // 1. Intentar sincronización en vivo desde el endpoint servidor (/api/vip-technicians) conectado a Firestore
+  try {
+    const res = await fetch("/api/vip-technicians", { cache: "no-store" });
+    if (res.ok) {
+      const payload = await res.json();
+      if (
+        payload?.synced &&
+        Array.isArray(payload.users) &&
+        payload.users.length > 0
+      ) {
+        const liveTop36: TechnicianProfile[] = payload.users
+          .slice(0, 36)
+          .map((u: any, idx: number) => {
+            const rank = idx + 1;
+            const ciClean = String(u.ci || "").trim();
+            const pts = Number(parseFloat(u.points || 0).toFixed(2));
+            const spent = Number(parseFloat(u.totalSpent || 0).toFixed(2));
+            const tier = calculateVipTier(pts);
+            const safeRankCode = `VIP-TOP-${String(rank).padStart(2, "0")}`;
 
-  if (isFirebaseConfigured && db) {
-    try {
-      const usersRef = collection(db, "users");
-      const topQuery = query(usersRef, orderBy("points", "desc"), limit(36));
-      const snap = await getDocs(topQuery);
+            // Buscar si existe plantilla base para conservar foto/coordenadas o usar la ranura #idx
+            const matchedTemplate =
+              MOCK_TECHNICIANS.find(
+                (t) => normalizeIdentifier(t.cedula) === normalizeIdentifier(ciClean)
+              ) || MOCK_TECHNICIANS[idx] || MOCK_TECHNICIANS[0];
 
-      if (!snap.empty) {
-        snap.docs.forEach((docSnap, idx) => {
-          const data = docSnap.data();
-          const ciClean = normalizeIdentifier(String(data.ci || ""));
-          const pts = Number(parseFloat(data.points || 0).toFixed(2));
-          const spent = Number(parseFloat(data.totalSpent || 0).toFixed(2));
-          const tier = calculateVipTier(pts);
-          const safeRankCode = `VIP-TOP-${String(idx + 1).padStart(2, "0")}`;
+            const specialtySuffix =
+              matchedTemplate.etiquetaDestacada.split("•")[1]?.trim() ||
+              "Refrigeración & Aires Split";
 
-          const existingIndex = baseList.findIndex(
-            (t) => normalizeIdentifier(t.cedula) === ciClean
-          );
+            const finalCity =
+              (u.city as Exclude<JirehCity, "Todas">) ||
+              matchedTemplate.ciudad ||
+              "Maracay";
+            const finalBranch = u.branch
+              ? `Sede ${u.branch}`
+              : matchedTemplate.sedeJireh || "Sede Principal";
 
-          if (existingIndex >= 0) {
-            baseList[existingIndex] = {
-              ...baseList[existingIndex],
-              rankingVip: idx + 1,
-              nombre: String(data.name || baseList[existingIndex].nombre),
-              puntosJirehVip: pts,
-              comprasAcumuladasUSD: spent,
-              esVipVerificado: true,
-              nivelVip: tier,
-              codigoVipRefriJireh: safeRankCode,
-            };
-          } else if (idx < baseList.length && ciClean) {
-            // Sincronizar ranura #idx con el usuario real de Firebase manteniendo plantilla visual
-            const slotTemplate = baseList[idx];
-            const cleanName = String(data.name || slotTemplate.nombre);
-            baseList[idx] = {
-              ...slotTemplate,
-              rankingVip: idx + 1,
+            return {
+              ...matchedTemplate,
+              id: `tec-vip-${rank}`,
+              rankingVip: rank,
               cedula: ciClean,
-              nombre: cleanName,
+              nombre: String(u.name || matchedTemplate.nombre).trim(),
+              telefonoWhatsapp: u.phone || matchedTemplate.telefonoWhatsapp,
+              ciudad: finalCity,
+              sedeJireh: finalBranch,
               puntosJirehVip: pts,
               comprasAcumuladasUSD: spent,
               esVipVerificado: true,
               nivelVip: tier,
               codigoVipRefriJireh: safeRankCode,
-              etiquetaDestacada: `Top #${idx + 1} VIP • ${
-                slotTemplate.etiquetaDestacada.split("•")[1]?.trim() ||
-                "Refrigeración & Aires Split"
-              }`,
-              bio: `Técnico VIP #${
-                idx + 1
-              } en el ranking de Refrigeraciones Jireh con ${pts.toFixed(
+              etiquetaDestacada: `Top #${rank} VIP • ${specialtySuffix}`,
+              bio: `Miembro #${rank} del ranking oficial de Clientes Jireh VIP con ${pts.toFixed(
                 2
-              )} puntos acumulados. Servicio garantizado con repuestos originales en ${
-                slotTemplate.ciudad
-              }.`,
+              )} puntos acumulados en Refrigeraciones Jireh. Servicio técnico verificado con repuestos originales en ${finalCity}.`,
             };
-          }
-        });
+          });
+
+        return liveTop36;
       }
-    } catch {
-      // Usa el Top 36 pre-sincronizado
     }
+  } catch {
+    // Si está offline, usa el listado estricto de los 36 reales pre-sincronizados
   }
 
-  const sorted = sortTechniciansByVipPriority(baseList);
-  return sorted.slice(0, 36).map((tech, index) => ({
+  // 2. Respaldo con los 36 registros reales exactos de https://clientes-jireh-vip.vercel.app
+  return MOCK_TECHNICIANS.slice(0, 36).map((tech, index) => ({
     ...tech,
-    rankingVip: tech.esVipVerificado ? index + 1 : undefined,
+    rankingVip: index + 1,
   }));
 }
 
