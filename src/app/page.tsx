@@ -126,16 +126,36 @@ function TecniJirehContent() {
     setVisibleCount(PAGE_STEP);
   }, [selectedCity, selectedCategory, onlyVipVerified, searchQuery]);
 
-  // 1. Carga y sincronización inicial con Firebase / Catálogo VIP Jireh
+  // 1. Carga y sincronización automática en tiempo real con https://clientes-jireh-vip.vercel.app
+  // Se actualiza al abrir la página, al volver a la pestaña (focus/visibilitychange) y cada 25 segundos
   useEffect(() => {
     let mounted = true;
-    getSyncedTechnicians().then((synced) => {
-      if (mounted) {
-        setTechnicians(synced);
+
+    const syncLiveRanking = () => {
+      getSyncedTechnicians().then((synced) => {
+        if (mounted && synced.length > 0) {
+          setTechnicians(synced);
+        }
+      });
+    };
+
+    syncLiveRanking();
+
+    const intervalId = window.setInterval(syncLiveRanking, 25000);
+    const handleVisibilityOrFocus = () => {
+      if (document.visibilityState === "visible") {
+        syncLiveRanking();
       }
-    });
+    };
+
+    window.addEventListener("focus", handleVisibilityOrFocus);
+    document.addEventListener("visibilitychange", handleVisibilityOrFocus);
+
     return () => {
       mounted = false;
+      window.clearInterval(intervalId);
+      window.removeEventListener("focus", handleVisibilityOrFocus);
+      document.removeEventListener("visibilitychange", handleVisibilityOrFocus);
     };
   }, []);
 

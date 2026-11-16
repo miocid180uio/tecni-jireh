@@ -53,11 +53,14 @@ async function getAccessTokenFromServiceAccount(sa: {
   return tokenData.access_token;
 }
 
-export async function GET() {
+export async function GET(request: Request) {
   try {
     const rawSa = process.env.FIREBASE_SERVICE_ACCOUNT;
     if (!rawSa) {
-      return NextResponse.json({ synced: false, users: [] });
+      return NextResponse.json(
+        { synced: false, users: [] },
+        { headers: { "Cache-Control": "no-store, max-age=0" } }
+      );
     }
 
     const sa = JSON.parse(rawSa.trim());
@@ -108,14 +111,31 @@ export async function GET() {
     // 1° por puntos descendente, 2° por totalSpent descendente
     users.sort((a, b) => b.points - a.points || b.totalSpent - a.totalSpent);
 
-    return NextResponse.json({
-      synced: true,
-      users: users.slice(0, 36),
-    });
+    const { searchParams } = new URL(request.url);
+    const ciFilter = searchParams.get("ci")?.replace(/\D/g, "");
+
+    if (ciFilter) {
+      const match = users.find(
+        (u) => u.ci.replace(/\D/g, "") === ciFilter
+      );
+      return NextResponse.json(
+        { synced: true, user: match || null },
+        { headers: { "Cache-Control": "no-store, max-age=0" } }
+      );
+    }
+
+    return NextResponse.json(
+      {
+        synced: true,
+        updatedAt: new Date().toISOString(),
+        users: users.slice(0, 36),
+      },
+      { headers: { "Cache-Control": "no-store, max-age=0" } }
+    );
   } catch (err: any) {
     return NextResponse.json(
       { synced: false, error: err?.message || "Sync error", users: [] },
-      { status: 200 }
+      { status: 200, headers: { "Cache-Control": "no-store, max-age=0" } }
     );
   }
 }

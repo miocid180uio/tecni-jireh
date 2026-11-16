@@ -85,6 +85,41 @@ export async function findVipClientByCedulaOrPhone(
     return null;
   }
 
+  // 1. Consulta en vivo al servidor (/api/vip-technicians?ci=...) conectado en tiempo real a Firestore
+  try {
+    const res = await fetch(
+      `/api/vip-technicians?ci=${encodeURIComponent(cleanId)}`,
+      { cache: "no-store" }
+    );
+    if (res.ok) {
+      const payload = await res.json();
+      if (payload?.synced && payload?.user) {
+        const u = payload.user;
+        const pts = Number(parseFloat(u.points || 0).toFixed(2));
+        const spent = Number(parseFloat(u.totalSpent || 0).toFixed(2));
+        return {
+          id: u.uid,
+          cedula: String(u.ci || cleanId),
+          nombreCompleto: String(u.name || "Técnico VIP Jireh"),
+          telefono: String(u.phone || ""),
+          email: u.email ? String(u.email) : undefined,
+          direccion: u.address ? String(u.address) : undefined,
+          tipoCuenta: "tecnico",
+          ciudad: (u.city as Exclude<JirehCity, "Todas">) || "Maracay",
+          sedeFrecuente: (u.branch as JirehBranch) || "Principal",
+          puntosAcumulados: pts,
+          comprasAcumuladasUSD: spent,
+          nivelVip: calculateVipTier(pts),
+          codigoReferidoVip: "VIP-JIREH",
+          fechaRegistro: "2024-01-01",
+          activo: true,
+        };
+      }
+    }
+  } catch {
+    //Continúa a consulta directa o respaldo
+  }
+
   if (isFirebaseConfigured && db) {
     for (const colName of VIP_COLLECTION_CANDIDATES) {
       try {
