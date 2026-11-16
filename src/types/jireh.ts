@@ -43,6 +43,7 @@ export interface JirehVipClient {
   codigoReferidoVip: string; // Código para descuentos y puntos en refrijireh.com
   fechaRegistro: string;
   comprasRecientesRepuestos?: string[];
+  fotoUrl?: string;
   activo: boolean;
 }
 
@@ -60,6 +61,7 @@ export interface NewJirehEcosystemRegistration {
   email: string;
   password: string;
   // Campos adicionales si se registra como Técnico
+  fotoPerfilUrl?: string;
   especialidades?: ServiceCategoryId[];
   etiquetaDestacada?: string;
   tarifaDiagnosticoUSD?: number;

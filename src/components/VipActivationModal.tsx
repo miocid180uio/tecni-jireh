@@ -23,6 +23,8 @@ import {
   ExternalLink,
   ShieldCheck,
   KeyRound,
+  Camera,
+  Upload,
 } from "lucide-react";
 import {
   JirehVipClient,
@@ -38,7 +40,11 @@ import {
   activateVipTechnicianProfile,
   registerNewJirehEcosystemMember,
 } from "@/services/jirehVipService";
-import { SERVICE_CATEGORIES, MOCK_VIP_CLIENTS } from "@/lib/firebase";
+import {
+  SERVICE_CATEGORIES,
+  MOCK_VIP_CLIENTS,
+  MOCK_TECHNICIANS,
+} from "@/lib/firebase";
 
 interface VipActivationModalProps {
   isOpen: boolean;
@@ -111,6 +117,8 @@ export default function VipActivationModal({
   const [tarifaDiagnostico, setTarifaDiagnostico] = useState(15);
   const [bio, setBio] = useState("");
   const [urgenciasHoy, setUrgenciasHoy] = useState(true);
+  const [updateFotoUrl, setUpdateFotoUrl] = useState("");
+  const [updateFotoNombre, setUpdateFotoNombre] = useState("");
   const [isActivating, setIsActivating] = useState(false);
 
   // =========================================================================
@@ -139,11 +147,60 @@ export default function VipActivationModal({
   const [regTarifa, setRegTarifa] = useState(15);
   const [regExperiencia, setRegExperiencia] = useState(5);
   const [regUrgencias, setRegUrgencias] = useState(true);
+  const [regFotoUrl, setRegFotoUrl] = useState("");
+  const [regFotoNombre, setRegFotoNombre] = useState("");
 
   const [isRegistering, setIsRegistering] = useState(false);
   const [regError, setRegError] = useState<string | null>(null);
   const [regSuccessUserOnly, setRegSuccessUserOnly] =
     useState<JirehVipClient | null>(null);
+
+  // Procesa cualquier imagen subida (PNG, JPG, JPEG, WEBP, etc.) y la optimiza automáticamente
+  const handleImageFileUpload = (
+    e: React.ChangeEvent<HTMLInputElement>,
+    onPhotoReady: (dataUrl: string, fileName: string) => void
+  ) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      const rawDataUrl = String(ev.target?.result || "");
+      if (!rawDataUrl) return;
+
+      const img = new window.Image();
+      img.onload = () => {
+        const MAX_SIZE = 640;
+        let width = img.width;
+        let height = img.height;
+
+        if (width > height && width > MAX_SIZE) {
+          height = Math.round((height * MAX_SIZE) / width);
+          width = MAX_SIZE;
+        } else if (height > MAX_SIZE) {
+          width = Math.round((width * MAX_SIZE) / height);
+          height = MAX_SIZE;
+        }
+
+        const canvas = document.createElement("canvas");
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext("2d");
+        if (ctx) {
+          ctx.drawImage(img, 0, 0, width, height);
+          const compressedDataUrl = canvas.toDataURL("image/jpeg", 0.84);
+          onPhotoReady(compressedDataUrl, file.name);
+        } else {
+          onPhotoReady(rawDataUrl, file.name);
+        }
+      };
+      img.onerror = () => {
+        onPhotoReady(rawDataUrl, file.name);
+      };
+      img.src = rawDataUrl;
+    };
+    reader.readAsDataURL(file);
+  };
 
   React.useEffect(() => {
     setLocalMasterAdmin(isMasterAdminLogged);
@@ -198,6 +255,18 @@ export default function VipActivationModal({
     setUpdateCiudad(result.ciudad || "Maracay");
     setUpdateSede(result.sedeFrecuente || "Principal");
     setUpdateTipoCuenta(result.tipoCuenta || "tecnico");
+
+    const matchedTech = MOCK_TECHNICIANS.find(
+      (t) =>
+        t.cedula.replace(/\D/g, "") === result.cedula.replace(/\D/g, "")
+    );
+    setUpdateFotoUrl(
+      result.fotoUrl ||
+        matchedTech?.fotoUrl ||
+        "https://images.unsplash.com/photo-1560250097-0b93528c311a?auto=format&fit=crop&w=800&q=80"
+    );
+    setUpdateFotoNombre("");
+
     setBio(
       `Técnico certificado y miembro ${
         result.nivelVip
@@ -313,6 +382,7 @@ export default function VipActivationModal({
         tarifaDiagnosticoUSD: Number(tarifaDiagnostico) || 15,
         bio,
         disponibleUrgenciasHoy: urgenciasHoy,
+        fotoPerfilUrl: updateFotoUrl,
       });
 
       if (updateTipoCuenta === "usuario") {
@@ -322,18 +392,19 @@ export default function VipActivationModal({
           ciudad: updateCiudad,
           sedeFrecuente: updateSede,
           direccion: zonasText,
+          fotoUrl: updateFotoUrl,
           tipoCuenta: "usuario",
         });
       } else {
         onProfileActivated(
           createdProfile,
           accessMode === 3
-            ? `¡Datos corregidos por Administrador (admin@jireh.com) para ${
+            ? `¡Datos e imagen actualizados por Administrador (admin@jireh.com) para ${
                 foundVip.nombreCompleto
               }! Sus ${foundVip.puntosAcumulados.toFixed(
                 2
               )} PTS permanecen intactos.`
-            : `¡Ficha VIP actualizada con éxito por su titular (${
+            : `¡Ficha e imagen VIP actualizadas con éxito por su titular (${
                 foundVip.nombreCompleto
               })! Tus ${foundVip.puntosAcumulados.toFixed(
                 2
@@ -379,6 +450,7 @@ export default function VipActivationModal({
           tipoCuenta: regTipoCuenta,
           email: regEmail,
           password: regPassword,
+          fotoPerfilUrl: regFotoUrl,
           especialidades: regCategories,
           etiquetaDestacada: regEspecialidadTitulo,
           tarifaDiagnosticoUSD: Number(regTarifa) || 15,
@@ -866,6 +938,52 @@ export default function VipActivationModal({
                           </button>
                         </div>
 
+                        {/* Actualizar / Subir Imagen de la Ficha (PNG, JPG, WEBP, etc.) */}
+                        <div className="bg-white border border-cyan-200/90 rounded-2xl p-3 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                          <div className="flex items-center gap-3 min-w-0">
+                            <div className="relative w-14 h-14 rounded-2xl overflow-hidden bg-slate-100 border-2 border-[#00B4D8] shrink-0 shadow-sm">
+                              {updateFotoUrl ? (
+                                <img
+                                  src={updateFotoUrl}
+                                  alt={foundVip.nombreCompleto}
+                                  className="w-full h-full object-cover"
+                                />
+                              ) : (
+                                <div className="w-full h-full flex items-center justify-center text-slate-400">
+                                  <Camera className="w-6 h-6" />
+                                </div>
+                              )}
+                            </div>
+                            <div className="min-w-0">
+                              <p className="text-xs font-extrabold text-[#0A2540] flex items-center gap-1.5">
+                                <Camera className="w-3.5 h-3.5 text-[#00B4D8] shrink-0" />
+                                <span>Imagen de la Ficha del Técnico</span>
+                              </p>
+                              <p className="text-[11px] text-slate-500 leading-snug mt-0.5">
+                                {updateFotoNombre
+                                  ? `Archivo cargado: ${updateFotoNombre}`
+                                  : "Sube una foto en formato PNG, JPG, WEBP o desde tu teléfono."}
+                              </p>
+                            </div>
+                          </div>
+
+                          <label className="cursor-pointer bg-gradient-to-r from-[#0A2540] to-[#0096C7] hover:from-[#12385E] hover:to-[#00B4D8] active:scale-95 text-white font-extrabold text-xs px-3.5 py-2.5 rounded-xl shadow-sm flex items-center justify-center gap-1.5 shrink-0 transition-all">
+                            <Upload className="w-3.5 h-3.5 text-amber-300" />
+                            <span>Cambiar / Subir Imagen</span>
+                            <input
+                              type="file"
+                              accept="image/png,image/jpeg,image/jpg,image/webp,image/*"
+                              className="hidden"
+                              onChange={(e) =>
+                                handleImageFileUpload(e, (dataUrl, name) => {
+                                  setUpdateFotoUrl(dataUrl);
+                                  setUpdateFotoNombre(name);
+                                })
+                              }
+                            />
+                          </label>
+                        </div>
+
                         <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
                           <div>
                             <label className="block text-xs font-semibold text-slate-700 mb-1">
@@ -1273,8 +1391,51 @@ export default function VipActivationModal({
               {regTipoCuenta === "tecnico" && (
                 <div className="space-y-3 pt-1 border-t border-slate-200">
                   <label className="block text-xs font-bold text-[#0A2540] uppercase tracking-wider">
-                    4. Perfil de Servicios para aparecer en TECNI JIREH
+                    4. Perfil de Servicios e Imagen para TECNI JIREH
                   </label>
+
+                  {/* Subir Foto de Perfil para Nuevo Técnico */}
+                  <div className="bg-slate-50 border border-cyan-200/80 rounded-2xl p-3 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                    <div className="flex items-center gap-3 min-w-0">
+                      <div className="w-12 h-12 rounded-2xl overflow-hidden bg-white border-2 border-[#00B4D8] flex items-center justify-center shrink-0">
+                        {regFotoUrl ? (
+                          <img
+                            src={regFotoUrl}
+                            alt="Previsualización"
+                            className="w-full h-full object-cover"
+                          />
+                        ) : (
+                          <Camera className="w-5 h-5 text-slate-400" />
+                        )}
+                      </div>
+                      <div className="min-w-0">
+                        <p className="text-xs font-extrabold text-[#0A2540]">
+                          Foto de tu Ficha Técnica (Opcional)
+                        </p>
+                        <p className="text-[11px] text-slate-500 truncate">
+                          {regFotoNombre
+                            ? `Archivo: ${regFotoNombre}`
+                            : "Formatos admitidos: PNG, JPG, JPEG, WEBP"}
+                        </p>
+                      </div>
+                    </div>
+
+                    <label className="cursor-pointer bg-[#0A2540] hover:bg-[#12385E] text-white font-extrabold text-xs px-3.5 py-2 rounded-xl flex items-center justify-center gap-1.5 shrink-0 transition-colors">
+                      <Upload className="w-3.5 h-3.5 text-amber-300" />
+                      <span>Subir Imagen</span>
+                      <input
+                        type="file"
+                        accept="image/png,image/jpeg,image/jpg,image/webp,image/*"
+                        className="hidden"
+                        onChange={(e) =>
+                          handleImageFileUpload(e, (dataUrl, name) => {
+                            setRegFotoUrl(dataUrl);
+                            setRegFotoNombre(name);
+                          })
+                        }
+                      />
+                    </label>
+                  </div>
 
                   <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
                     {SERVICE_CATEGORIES.filter((c) => c.id !== "todos").map(

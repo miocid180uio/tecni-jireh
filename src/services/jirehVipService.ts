@@ -97,6 +97,9 @@ export async function findVipClientByCedulaOrPhone(
         const u = payload.user;
         const pts = Number(parseFloat(u.points || 0).toFixed(2));
         const spent = Number(parseFloat(u.totalSpent || 0).toFixed(2));
+        const matchedMockTech = MOCK_TECHNICIANS.find(
+          (t) => normalizeIdentifier(t.cedula) === cleanId
+        );
         return {
           id: u.uid,
           cedula: String(u.ci || cleanId),
@@ -104,6 +107,7 @@ export async function findVipClientByCedulaOrPhone(
           telefono: String(u.phone || ""),
           email: u.email ? String(u.email) : undefined,
           direccion: u.address ? String(u.address) : undefined,
+          fotoUrl: u.photoUrl || matchedMockTech?.fotoUrl || undefined,
           tipoCuenta: "tecnico",
           ciudad: (u.city as Exclude<JirehCity, "Todas">) || "Maracay",
           sedeFrecuente: (u.branch as JirehBranch) || "Principal",
@@ -341,6 +345,7 @@ export async function getSyncedTechnicians(): Promise<TechnicianProfile[]> {
               ) || MOCK_TECHNICIANS[idx] || MOCK_TECHNICIANS[0];
 
             const specialtySuffix =
+              u.specialtyTitle ||
               matchedTemplate.etiquetaDestacada.split("•")[1]?.trim() ||
               "Refrigeración & Aires Split";
 
@@ -351,6 +356,17 @@ export async function getSyncedTechnicians(): Promise<TechnicianProfile[]> {
             const finalBranch = u.branch
               ? `Sede ${u.branch}`
               : matchedTemplate.sedeJireh || "Sede Principal";
+            const finalPhoto =
+              u.photoUrl && String(u.photoUrl).trim() !== ""
+                ? String(u.photoUrl).trim()
+                : matchedTemplate.fotoUrl;
+            const finalZonas =
+              u.address && String(u.address).trim() !== ""
+                ? String(u.address)
+                    .split(",")
+                    .map((z: string) => z.trim())
+                    .filter(Boolean)
+                : matchedTemplate.zonasCobertura;
 
             return {
               ...matchedTemplate,
@@ -358,15 +374,26 @@ export async function getSyncedTechnicians(): Promise<TechnicianProfile[]> {
               rankingVip: rank,
               cedula: ciClean,
               nombre: String(u.name || matchedTemplate.nombre).trim(),
+              fotoUrl: finalPhoto,
               telefonoWhatsapp: u.phone || matchedTemplate.telefonoWhatsapp,
               ciudad: finalCity,
               sedeJireh: finalBranch,
+              zonasCobertura:
+                finalZonas.length > 0
+                  ? finalZonas
+                  : matchedTemplate.zonasCobertura,
+              tarifaDiagnosticoUSD:
+                Number(u.diagnosticFeeUSD) > 0
+                  ? Number(u.diagnosticFeeUSD)
+                  : matchedTemplate.tarifaDiagnosticoUSD,
               puntosJirehVip: pts,
               comprasAcumuladasUSD: spent,
               esVipVerificado: true,
               nivelVip: tier,
               codigoVipRefriJireh: safeRankCode,
-              etiquetaDestacada: `Top #${rank} VIP • ${specialtySuffix}`,
+              etiquetaDestacada: specialtySuffix.startsWith("Top #")
+                ? specialtySuffix
+                : `Top #${rank} VIP • ${specialtySuffix}`,
               bio: `Miembro #${rank} del ranking oficial de Clientes Jireh VIP con ${pts.toFixed(
                 2
               )} puntos acumulados en Refrigeraciones Jireh. Servicio técnico verificado con repuestos originales en ${finalCity}.`,
@@ -390,7 +417,7 @@ export async function getSyncedTechnicians(): Promise<TechnicianProfile[]> {
 /**
  * Actualiza y enriquece de forma NO DESTRUCTIVA (`{ merge: true }`) la ficha de un
  * usuario antiguo en `users/{uid}` agregando únicamente los campos nuevos
- * (`phone`, `address`, `city`, `branch`, `role`, `specialties`) SIN tocar jamás
+ * (`photoUrl`, `phone`, `address`, `city`, `branch`, `role`, `specialties`) SIN tocar jamás
  * `points`, `totalSpent` ni `ci`.
  */
 export async function activateVipTechnicianProfile(payload: {
@@ -429,15 +456,22 @@ export async function activateVipTechnicianProfile(payload: {
   const finalPhone = telefonoWhatsapp?.trim() || vipClient.telefono;
   const finalCity = ciudad || vipClient.ciudad;
   const finalBranch = sedeFrecuente || vipClient.sedeFrecuente || "Principal";
+  const existingTech = MOCK_TECHNICIANS.find(
+    (t) => normalizeIdentifier(t.cedula) === normalizeIdentifier(vipClient.cedula)
+  );
+  const finalPhotoUrl =
+    fotoPerfilUrl?.trim() ||
+    existingTech?.fotoUrl ||
+    "https://images.unsplash.com/photo-1540569014015-19a7be504e3a?auto=format&fit=crop&w=800&q=80";
 
-  // 1. Enriquecimiento NO DESTRUCTIVO en Firestore (`users/{uid}`) usando `{ merge: true }`
-  // NOTA DE SEGURIDAD: No se envía `points` ni `totalSpent` en este payload para garantizar
-  // que el saldo y puntos acumulados del usuario antiguo permanezcan 100% intactos.
-  if (isFirebaseConfigured && db && vipClient.id) {
+  // 1. Guardar en Firestore vía API Servidor (/api/vip-technicians POST) y SDK cliente
+  if (vipClient.id) {
     try {
-      await setDoc(
-        doc(db, "users", vipClient.id),
-        {
+      await fetch("/api/vip-technicians", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          uid: vipClient.id,
           phone: finalPhone,
           address:
             direccionCompleta?.trim() ||
@@ -447,25 +481,50 @@ export async function activateVipTechnicianProfile(payload: {
           city: finalCity,
           branch: finalBranch,
           role: tipoCuenta,
-          specialties: especialidades,
           specialtyTitle: etiquetaDestacada.trim(),
           diagnosticFeeUSD: tarifaDiagnosticoUSD || 15,
-          profileCompletedAt: new Date().toISOString(),
-        },
-        { merge: true }
-      );
+          photoUrl: fotoPerfilUrl?.trim() || undefined,
+        }),
+      });
     } catch {
-      // Si el usuario validó solo por cédula sin sesión Auth activa, se actualiza en el perfil técnico
+      // Continúa hacia SDK cliente
+    }
+  }
+
+  if (isFirebaseConfigured && db && vipClient.id) {
+    try {
+      const updateDocData: Record<string, any> = {
+        phone: finalPhone,
+        address:
+          direccionCompleta?.trim() ||
+          zonasCobertura.join(", ") ||
+          vipClient.direccion ||
+          "",
+        city: finalCity,
+        branch: finalBranch,
+        role: tipoCuenta,
+        specialties: especialidades,
+        specialtyTitle: etiquetaDestacada.trim(),
+        diagnosticFeeUSD: tarifaDiagnosticoUSD || 15,
+        profileCompletedAt: new Date().toISOString(),
+      };
+      if (fotoPerfilUrl?.trim()) {
+        updateDocData.photoUrl = fotoPerfilUrl.trim();
+      }
+      await setDoc(doc(db, "users", vipClient.id), updateDocData, {
+        merge: true,
+      });
+    } catch {
+      // Si las reglas requieren Admin, el POST /api/vip-technicians ya lo guardó
     }
   }
 
   const newProfile: TechnicianProfile = {
-    id: `tec-vip-${Date.now()}`,
+    id: existingTech?.id || `tec-vip-${Date.now()}`,
+    rankingVip: existingTech?.rankingVip,
     cedula: vipClient.cedula,
     nombre: vipClient.nombreCompleto,
-    fotoUrl:
-      fotoPerfilUrl?.trim() ||
-      "https://images.unsplash.com/photo-1540569014015-19a7be504e3a?auto=format&fit=crop&w=800&q=80",
+    fotoUrl: finalPhotoUrl,
     telefonoWhatsapp: finalPhone,
     ciudad: finalCity,
     sedeJireh: `Sede ${finalBranch}`,
@@ -478,11 +537,11 @@ export async function activateVipTechnicianProfile(payload: {
     bio:
       bio.trim() ||
       `Técnico verificado del ecosistema Refrigeraciones Jireh (${vipClient.nivelVip}) con atención inmediata en ${finalCity}.`,
-    anosExperiencia: 10,
+    anosExperiencia: existingTech?.anosExperiencia || 10,
     tarifaDiagnosticoUSD: tarifaDiagnosticoUSD || 15,
     modalidadTarifa: "por diagnóstico",
-    calificacion: 5.0,
-    totalResenas: 24,
+    calificacion: existingTech?.calificacion || 5.0,
+    totalResenas: existingTech?.totalResenas || 24,
     trabajosCompletados: 95,
     tiempoRespuestaMin: 20,
     disponibleUrgenciasHoy,
@@ -598,6 +657,7 @@ export async function registerNewJirehEcosystemMember(
           city: input.ciudad,
           branch: input.sedeFrecuente,
           role: input.tipoCuenta,
+          photoUrl: input.fotoPerfilUrl?.trim() || "",
           points: 0,
           totalSpent: 0,
           createdAt: new Date().toISOString(),
@@ -616,6 +676,7 @@ export async function registerNewJirehEcosystemMember(
     telefono: input.telefono.trim(),
     email: input.email.trim().toLowerCase(),
     direccion: input.direccion.trim(),
+    fotoUrl: input.fotoPerfilUrl?.trim() || undefined,
     tipoCuenta: input.tipoCuenta,
     ciudad: input.ciudad,
     sedeFrecuente: input.sedeFrecuente,
@@ -642,6 +703,7 @@ export async function registerNewJirehEcosystemMember(
       cedula: cleanCedula,
       nombre: input.nombreCompleto.trim(),
       fotoUrl:
+        input.fotoPerfilUrl?.trim() ||
         "https://images.unsplash.com/photo-1560250097-0b93528c311a?auto=format&fit=crop&w=800&q=80",
       telefonoWhatsapp: input.telefono.trim(),
       ciudad: input.ciudad,

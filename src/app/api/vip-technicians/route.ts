@@ -14,6 +14,9 @@ interface RawFirestoreUser {
   city: string;
   branch: string;
   address: string;
+  photoUrl: string;
+  specialtyTitle: string;
+  diagnosticFeeUSD: number;
 }
 
 async function getAccessTokenFromServiceAccount(sa: {
@@ -104,6 +107,9 @@ export async function GET(request: Request) {
         city: String(getVal(f.city)).trim(),
         branch: String(getVal(f.branch)).trim(),
         address: String(getVal(f.address)).trim(),
+        photoUrl: String(getVal(f.photoUrl)).trim(),
+        specialtyTitle: String(getVal(f.specialtyTitle)).trim(),
+        diagnosticFeeUSD: Number(getVal(f.diagnosticFeeUSD) || 0),
       };
     });
 
@@ -115,9 +121,7 @@ export async function GET(request: Request) {
     const ciFilter = searchParams.get("ci")?.replace(/\D/g, "");
 
     if (ciFilter) {
-      const match = users.find(
-        (u) => u.ci.replace(/\D/g, "") === ciFilter
-      );
+      const match = users.find((u) => u.ci.replace(/\D/g, "") === ciFilter);
       return NextResponse.json(
         { synced: true, user: match || null },
         { headers: { "Cache-Control": "no-store, max-age=0" } }
@@ -136,6 +140,113 @@ export async function GET(request: Request) {
     return NextResponse.json(
       { synced: false, error: err?.message || "Sync error", users: [] },
       { status: 200, headers: { "Cache-Control": "no-store, max-age=0" } }
+    );
+  }
+}
+
+/**
+ * POST /api/vip-technicians
+ * Actualiza de forma NO DESTRUCTIVA los campos de perfil e imagen (`photoUrl`, `phone`, `city`,
+ * `branch`, `address`, `role`, `specialtyTitle`, `diagnosticFeeUSD`) en `users/{uid}` en Firestore,
+ * manteniendo 100% intactos `points`, `totalSpent` y `ci`.
+ */
+export async function POST(request: Request) {
+  try {
+    const rawSa = process.env.FIREBASE_SERVICE_ACCOUNT;
+    if (!rawSa) {
+      return NextResponse.json({ updated: false, reason: "No SA configured" });
+    }
+
+    const body = await request.json();
+    const {
+      uid,
+      phone,
+      city,
+      branch,
+      address,
+      role,
+      specialtyTitle,
+      diagnosticFeeUSD,
+      photoUrl,
+    } = body || {};
+
+    if (!uid) {
+      return NextResponse.json(
+        { updated: false, error: "Missing uid" },
+        { status: 400 }
+      );
+    }
+
+    const sa = JSON.parse(rawSa.trim());
+    const accessToken = await getAccessTokenFromServiceAccount(sa);
+    const projectId = sa.project_id || "clientesjirehvip-58048";
+
+    const fields: Record<string, any> = {};
+    const maskPaths: string[] = [];
+
+    if (typeof phone === "string" && phone.trim()) {
+      fields.phone = { stringValue: phone.trim() };
+      maskPaths.push("phone");
+    }
+    if (typeof city === "string" && city.trim()) {
+      fields.city = { stringValue: city.trim() };
+      maskPaths.push("city");
+    }
+    if (typeof branch === "string" && branch.trim()) {
+      fields.branch = { stringValue: branch.trim() };
+      maskPaths.push("branch");
+    }
+    if (typeof address === "string" && address.trim()) {
+      fields.address = { stringValue: address.trim() };
+      maskPaths.push("address");
+    }
+    if (typeof role === "string" && role.trim()) {
+      fields.role = { stringValue: role.trim() };
+      maskPaths.push("role");
+    }
+    if (typeof specialtyTitle === "string" && specialtyTitle.trim()) {
+      fields.specialtyTitle = { stringValue: specialtyTitle.trim() };
+      maskPaths.push("specialtyTitle");
+    }
+    if (typeof diagnosticFeeUSD === "number" && diagnosticFeeUSD > 0) {
+      fields.diagnosticFeeUSD = { integerValue: String(Math.round(diagnosticFeeUSD)) };
+      maskPaths.push("diagnosticFeeUSD");
+    }
+    if (typeof photoUrl === "string" && photoUrl.trim()) {
+      fields.photoUrl = { stringValue: photoUrl.trim() };
+      maskPaths.push("photoUrl");
+    }
+
+    if (maskPaths.length === 0) {
+      return NextResponse.json({ updated: true });
+    }
+
+    const queryMask = maskPaths
+      .map((p) => `updateMask.fieldPaths=${encodeURIComponent(p)}`)
+      .join("&");
+
+    const patchUrl = `https://firestore.googleapis.com/v1/projects/${projectId}/databases/(default)/documents/users/${encodeURIComponent(
+      uid
+    )}?${queryMask}`;
+
+    const patchRes = await fetch(patchUrl, {
+      method: "PATCH",
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ fields }),
+      cache: "no-store",
+    });
+
+    return NextResponse.json({
+      updated: patchRes.ok,
+      status: patchRes.status,
+    });
+  } catch (err: any) {
+    return NextResponse.json(
+      { updated: false, error: err?.message || "Update error" },
+      { status: 200 }
     );
   }
 }
