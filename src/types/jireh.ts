@@ -44,6 +44,8 @@ export interface JirehVipClient {
   fechaRegistro: string;
   comprasRecientesRepuestos?: string[];
   fotoUrl?: string;
+  lat?: number;
+  lng?: number;
   activo: boolean;
 }
 
@@ -62,6 +64,8 @@ export interface NewJirehEcosystemRegistration {
   password: string;
   // Campos adicionales si se registra como Técnico
   fotoPerfilUrl?: string;
+  lat?: number;
+  lng?: number;
   especialidades?: ServiceCategoryId[];
   etiquetaDestacada?: string;
   tarifaDiagnosticoUSD?: number;

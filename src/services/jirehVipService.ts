@@ -74,6 +74,85 @@ export function sortTechniciansByVipPriority(
   });
 }
 
+const SECTOR_COORDINATES_LOOKUP: Array<{
+  keywords: string[];
+  lat: number;
+  lng: number;
+}> = [
+  // Aragua (Maracay, Palo Negro, Turmero, Cagua, Santa Rita, El Limón, etc.)
+  { keywords: ["palo negro", "los aviadores", "super lider"], lat: 10.1738, lng: -67.5419 },
+  { keywords: ["santa rita", "coropo", "la morita ii"], lat: 10.2089, lng: -67.5582 },
+  { keywords: ["la morita", "intercomunal", "epa"], lat: 10.2195, lng: -67.5495 },
+  { keywords: ["turmero", "saman de guere", "el macaro", "valle lindo"], lat: 10.2285, lng: -67.4752 },
+  { keywords: ["cagua", "corinsa", "bella vista"], lat: 10.1865, lng: -67.4594 },
+  { keywords: ["santa cruz"], lat: 10.1815, lng: -67.5028 },
+  { keywords: ["san mateo"], lat: 10.2145, lng: -67.4235 },
+  { keywords: ["villa de cura"], lat: 10.0385, lng: -67.4892 },
+  { keywords: ["el limon", "el limón", "mata seca", "nino jesus"], lat: 10.2815, lng: -67.6215 },
+  { keywords: ["cana de azucar", "caña de azucar", "caña de azúcar", "ud 15", "ud 17"], lat: 10.2768, lng: -67.6145 },
+  { keywords: ["la coromoto", "el arsenal", "mariara"], lat: 10.2585, lng: -67.6225 },
+  { keywords: ["las delicias", "el castano", "el castaño", "camoruco", "cantarrana"], lat: 10.2685, lng: -67.5882 },
+  { keywords: ["base aragua", "parque aragua", "hyper jumbo"], lat: 10.2535, lng: -67.5825 },
+  { keywords: ["san jacinto", "la arboleda", "los olivos", "maracaya"], lat: 10.2495, lng: -67.5735 },
+  { keywords: ["campo alegre", "calle el caro", "bermudez", "bermúdez"], lat: 10.2368, lng: -67.5965 },
+  { keywords: ["los jabillos", "jose felix ribas", "josé félix ribas", "santa rosa"], lat: 10.2465, lng: -67.6052 },
+  { keywords: ["pinonal", "piñonal", "las acacias", "san jose", "san josé"], lat: 10.2395, lng: -67.5842 },
+  { keywords: ["calicanto", "la soledad", "san isidro", "la floresta", "el bosque"], lat: 10.2592, lng: -67.5935 },
+  { keywords: ["el hipodromo", "el hipódromo", "calle sucre", "av. sucre", "capozzi"], lat: 10.2485, lng: -67.5985 },
+  { keywords: ["23 de enero", "la romana", "centro"], lat: 10.2495, lng: -67.6085 },
+  // Carabobo (Valencia, San Diego, Naguanagua, Los Guayos, Tocuyito)
+  { keywords: ["san diego", "el morro", "la esmeralda"], lat: 10.2545, lng: -67.9532 },
+  { keywords: ["naguanagua", "manongo", "mañongo", "palma real", "barbula", "bárbula"], lat: 10.2572, lng: -68.0128 },
+  { keywords: ["el vinedo", "el viñedo", "guaparo", "av. bolivar"], lat: 10.2145, lng: -68.0052 },
+  { keywords: ["prebo", "la trigalena", "la trigaleña", "el trigal", "guataparo"], lat: 10.2235, lng: -68.0155 },
+  { keywords: ["la isabelica", "flor amarillo", "parque valencia", "zona industrial"], lat: 10.1695, lng: -67.9685 },
+  { keywords: ["los guayos", "paraparal", "guacara"], lat: 10.1825, lng: -67.9345 },
+  { keywords: ["tocuyito", "campo carabobo", "san blas"], lat: 10.1145, lng: -68.0675 },
+  // Caracas
+  { keywords: ["chacao", "altamira", "las mercedes", "los palos grandes", "chacaito"], lat: 10.4961, lng: -66.8532 },
+  { keywords: ["sabana grande", "la florida", "san bernardino", "la candelaria"], lat: 10.4935, lng: -66.8765 },
+  { keywords: ["el paraiso", "el paraíso", "san martin", "catia", "propatria"], lat: 10.4835, lng: -66.9345 },
+  { keywords: ["el marques", "el marqués", "los dos caminos", "la urbina", "macaracuay"], lat: 10.4912, lng: -66.8195 },
+];
+
+/**
+ * Infiere las coordenadas reales en el mapa a partir del sector o dirección escrita en la ficha
+ * cuando el técnico aún no ha movido manualmente su pin en el mapa.
+ */
+export function inferCoordinatesFromAddress(
+  addressText?: string,
+  city?: string,
+  fallbackLat?: number,
+  fallbackLng?: number
+): { lat: number; lng: number } {
+  const cleanText = (addressText || "")
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "");
+
+  if (cleanText) {
+    for (const entry of SECTOR_COORDINATES_LOOKUP) {
+      for (const kw of entry.keywords) {
+        const kwNorm = kw
+          .toLowerCase()
+          .normalize("NFD")
+          .replace(/[\u0300-\u036f]/g, "");
+        if (cleanText.includes(kwNorm)) {
+          return { lat: entry.lat, lng: entry.lng };
+        }
+      }
+    }
+  }
+
+  if (fallbackLat && fallbackLng) {
+    return { lat: fallbackLat, lng: fallbackLng };
+  }
+
+  if (city === "Valencia") return { lat: 10.2145, lng: -68.0052 };
+  if (city === "Caracas") return { lat: 10.4961, lng: -66.8532 };
+  return { lat: 10.2535, lng: -67.5911 };
+}
+
 /**
  * Consulta la colección `users` de Clientes Jireh VIP buscando por `ci` (CI/RUC), `cedula` o `telefono`.
  */
@@ -100,6 +179,17 @@ export async function findVipClientByCedulaOrPhone(
         const matchedMockTech = MOCK_TECHNICIANS.find(
           (t) => normalizeIdentifier(t.cedula) === cleanId
         );
+        const finalCity =
+          (u.city as Exclude<JirehCity, "Todas">) ||
+          matchedMockTech?.ciudad ||
+          "Maracay";
+        const inferredCoords = inferCoordinatesFromAddress(
+          u.address,
+          finalCity,
+          matchedMockTech?.coordenadas.lat,
+          matchedMockTech?.coordenadas.lng
+        );
+
         return {
           id: u.uid,
           cedula: String(u.ci || cleanId),
@@ -108,8 +198,10 @@ export async function findVipClientByCedulaOrPhone(
           email: u.email ? String(u.email) : undefined,
           direccion: u.address ? String(u.address) : undefined,
           fotoUrl: u.photoUrl || matchedMockTech?.fotoUrl || undefined,
+          lat: Number(u.lat) ? Number(u.lat) : inferredCoords.lat,
+          lng: Number(u.lng) ? Number(u.lng) : inferredCoords.lng,
           tipoCuenta: "tecnico",
-          ciudad: (u.city as Exclude<JirehCity, "Todas">) || "Maracay",
+          ciudad: finalCity,
           sedeFrecuente: (u.branch as JirehBranch) || "Principal",
           puntosAcumulados: pts,
           comprasAcumuladasUSD: spent,
@@ -368,6 +460,31 @@ export async function getSyncedTechnicians(): Promise<TechnicianProfile[]> {
                     .filter(Boolean)
                 : matchedTemplate.zonasCobertura;
 
+            // Coordenadas exactas:
+            // 1) Si el técnico ajustó manualmente su pin en el mapa (u.lat y u.lng guardados en Firestore)
+            // 2) Si escribió su dirección/sector en la ficha (ej. "Palo Negro", "Turmero", "San Diego", etc.)
+            // 3) Coordenadas base de su plantilla
+            const inferredCoords = inferCoordinatesFromAddress(
+              u.address || finalZonas.join(", "),
+              finalCity,
+              matchedTemplate.coordenadas.lat,
+              matchedTemplate.coordenadas.lng
+            );
+            const finalLat =
+              Number(u.lat) && !Number.isNaN(Number(u.lat))
+                ? Number(u.lat)
+                : inferredCoords.lat;
+            const finalLng =
+              Number(u.lng) && !Number.isNaN(Number(u.lng))
+                ? Number(u.lng)
+                : inferredCoords.lng;
+
+            const hasUpdatedProfile = Boolean(
+              (u.lat && u.lng) ||
+                (u.address && String(u.address).trim() !== "") ||
+                (u.photoUrl && String(u.photoUrl).trim() !== "")
+            );
+
             return {
               ...matchedTemplate,
               id: `tec-vip-${rank}`,
@@ -391,6 +508,14 @@ export async function getSyncedTechnicians(): Promise<TechnicianProfile[]> {
               esVipVerificado: true,
               nivelVip: tier,
               codigoVipRefriJireh: safeRankCode,
+              fechaSolicitud: hasUpdatedProfile
+                ? "Actualización VIP"
+                : matchedTemplate.fechaSolicitud,
+              coordenadas: {
+                ...matchedTemplate.coordenadas,
+                lat: finalLat,
+                lng: finalLng,
+              },
               etiquetaDestacada: specialtySuffix.startsWith("Top #")
                 ? specialtySuffix
                 : `Top #${rank} VIP • ${specialtySuffix}`,
@@ -417,7 +542,7 @@ export async function getSyncedTechnicians(): Promise<TechnicianProfile[]> {
 /**
  * Actualiza y enriquece de forma NO DESTRUCTIVA (`{ merge: true }`) la ficha de un
  * usuario antiguo en `users/{uid}` agregando únicamente los campos nuevos
- * (`photoUrl`, `phone`, `address`, `city`, `branch`, `role`, `specialties`) SIN tocar jamás
+ * (`photoUrl`, `phone`, `address`, `city`, `branch`, `role`, `specialties`, `lat`, `lng`) SIN tocar jamás
  * `points`, `totalSpent` ni `ci`.
  */
 export async function activateVipTechnicianProfile(payload: {
@@ -434,6 +559,8 @@ export async function activateVipTechnicianProfile(payload: {
   bio: string;
   disponibleUrgenciasHoy: boolean;
   fotoPerfilUrl?: string;
+  lat?: number;
+  lng?: number;
   fotosTrabajosUrls?: string[];
 }): Promise<TechnicianProfile> {
   const {
@@ -450,6 +577,8 @@ export async function activateVipTechnicianProfile(payload: {
     bio,
     disponibleUrgenciasHoy,
     fotoPerfilUrl,
+    lat,
+    lng,
     fotosTrabajosUrls = [],
   } = payload;
 
@@ -463,6 +592,21 @@ export async function activateVipTechnicianProfile(payload: {
     fotoPerfilUrl?.trim() ||
     existingTech?.fotoUrl ||
     "https://images.unsplash.com/photo-1540569014015-19a7be504e3a?auto=format&fit=crop&w=800&q=80";
+
+  const inferred = inferCoordinatesFromAddress(
+    direccionCompleta || zonasCobertura.join(", "),
+    finalCity,
+    existingTech?.coordenadas.lat,
+    existingTech?.coordenadas.lng
+  );
+  const finalLat =
+    typeof lat === "number" && !Number.isNaN(lat) && lat !== 0
+      ? Number(lat.toFixed(6))
+      : inferred.lat;
+  const finalLng =
+    typeof lng === "number" && !Number.isNaN(lng) && lng !== 0
+      ? Number(lng.toFixed(6))
+      : inferred.lng;
 
   // 1. Guardar en Firestore vía API Servidor (/api/vip-technicians POST) y SDK cliente
   if (vipClient.id) {
@@ -484,6 +628,8 @@ export async function activateVipTechnicianProfile(payload: {
           specialtyTitle: etiquetaDestacada.trim(),
           diagnosticFeeUSD: tarifaDiagnosticoUSD || 15,
           photoUrl: fotoPerfilUrl?.trim() || undefined,
+          lat: finalLat,
+          lng: finalLng,
         }),
       });
     } catch {
@@ -506,6 +652,8 @@ export async function activateVipTechnicianProfile(payload: {
         specialties: especialidades,
         specialtyTitle: etiquetaDestacada.trim(),
         diagnosticFeeUSD: tarifaDiagnosticoUSD || 15,
+        lat: finalLat,
+        lng: finalLng,
         profileCompletedAt: new Date().toISOString(),
       };
       if (fotoPerfilUrl?.trim()) {
@@ -554,18 +702,8 @@ export async function activateVipTechnicianProfile(payload: {
     fechaSolicitud: "Actualización VIP",
     insigniaRapida: "Top VIP",
     coordenadas: {
-      lat:
-        finalCity === "Valencia"
-          ? 10.2215
-          : finalCity === "Caracas"
-          ? 10.4961
-          : 10.258,
-      lng:
-        finalCity === "Valencia"
-          ? -68.0112
-          : finalCity === "Caracas"
-          ? -66.8532
-          : -67.595,
+      lat: finalLat,
+      lng: finalLng,
       mapX: 48,
       mapY: 45,
     },

@@ -17,6 +17,8 @@ interface RawFirestoreUser {
   photoUrl: string;
   specialtyTitle: string;
   diagnosticFeeUSD: number;
+  lat: number;
+  lng: number;
 }
 
 async function getAccessTokenFromServiceAccount(sa: {
@@ -110,6 +112,8 @@ export async function GET(request: Request) {
         photoUrl: String(getVal(f.photoUrl)).trim(),
         specialtyTitle: String(getVal(f.specialtyTitle)).trim(),
         diagnosticFeeUSD: Number(getVal(f.diagnosticFeeUSD) || 0),
+        lat: Number(getVal(f.lat) || 0),
+        lng: Number(getVal(f.lng) || 0),
       };
     });
 
@@ -146,9 +150,9 @@ export async function GET(request: Request) {
 
 /**
  * POST /api/vip-technicians
- * Actualiza de forma NO DESTRUCTIVA los campos de perfil e imagen (`photoUrl`, `phone`, `city`,
- * `branch`, `address`, `role`, `specialtyTitle`, `diagnosticFeeUSD`) en `users/{uid}` en Firestore,
- * manteniendo 100% intactos `points`, `totalSpent` y `ci`.
+ * Actualiza de forma NO DESTRUCTIVA los campos de perfil, imagen y ubicación exacta en mapa
+ * (`photoUrl`, `phone`, `city`, `branch`, `address`, `role`, `specialtyTitle`, `diagnosticFeeUSD`, `lat`, `lng`)
+ * en `users/{uid}` en Firestore, manteniendo 100% intactos `points`, `totalSpent` y `ci`.
  */
 export async function POST(request: Request) {
   try {
@@ -168,6 +172,8 @@ export async function POST(request: Request) {
       specialtyTitle,
       diagnosticFeeUSD,
       photoUrl,
+      lat,
+      lng,
     } = body || {};
 
     if (!uid) {
@@ -209,12 +215,22 @@ export async function POST(request: Request) {
       maskPaths.push("specialtyTitle");
     }
     if (typeof diagnosticFeeUSD === "number" && diagnosticFeeUSD > 0) {
-      fields.diagnosticFeeUSD = { integerValue: String(Math.round(diagnosticFeeUSD)) };
+      fields.diagnosticFeeUSD = {
+        integerValue: String(Math.round(diagnosticFeeUSD)),
+      };
       maskPaths.push("diagnosticFeeUSD");
     }
     if (typeof photoUrl === "string" && photoUrl.trim()) {
       fields.photoUrl = { stringValue: photoUrl.trim() };
       maskPaths.push("photoUrl");
+    }
+    if (typeof lat === "number" && !Number.isNaN(lat) && lat !== 0) {
+      fields.lat = { doubleValue: Number(lat.toFixed(6)) };
+      maskPaths.push("lat");
+    }
+    if (typeof lng === "number" && !Number.isNaN(lng) && lng !== 0) {
+      fields.lng = { doubleValue: Number(lng.toFixed(6)) };
+      maskPaths.push("lng");
     }
 
     if (maskPaths.length === 0) {

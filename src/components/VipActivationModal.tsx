@@ -39,12 +39,14 @@ import {
   authenticateExistingVipUser,
   activateVipTechnicianProfile,
   registerNewJirehEcosystemMember,
+  inferCoordinatesFromAddress,
 } from "@/services/jirehVipService";
 import {
   SERVICE_CATEGORIES,
   MOCK_VIP_CLIENTS,
   MOCK_TECHNICIANS,
 } from "@/lib/firebase";
+import LocationPinPickerMap from "@/components/LocationPinPickerMap";
 
 interface VipActivationModalProps {
   isOpen: boolean;
@@ -119,6 +121,9 @@ export default function VipActivationModal({
   const [urgenciasHoy, setUrgenciasHoy] = useState(true);
   const [updateFotoUrl, setUpdateFotoUrl] = useState("");
   const [updateFotoNombre, setUpdateFotoNombre] = useState("");
+  const [updateLat, setUpdateLat] = useState<number>(10.2535);
+  const [updateLng, setUpdateLng] = useState<number>(-67.5911);
+  const [hasManuallyMovedPin, setHasManuallyMovedPin] = useState(false);
   const [isActivating, setIsActivating] = useState(false);
 
   // =========================================================================
@@ -267,6 +272,26 @@ export default function VipActivationModal({
     );
     setUpdateFotoNombre("");
 
+    const initialAddress =
+      result.direccion ||
+      (result.ciudad === "Valencia"
+        ? "El Viñedo, Naguanagua, San Diego, Prebo"
+        : result.ciudad === "Caracas"
+        ? "Chacao, Altamira, Las Mercedes, Los Jabillos"
+        : "Las Delicias, Base Aragua, Calicanto, El Limón");
+
+    setZonasText(initialAddress);
+
+    const inferred = inferCoordinatesFromAddress(
+      initialAddress,
+      result.ciudad || "Maracay",
+      matchedTech?.coordenadas.lat,
+      matchedTech?.coordenadas.lng
+    );
+    setUpdateLat(result.lat || inferred.lat);
+    setUpdateLng(result.lng || inferred.lng);
+    setHasManuallyMovedPin(Boolean(result.lat && result.lng));
+
     setBio(
       `Técnico certificado y miembro ${
         result.nivelVip
@@ -276,15 +301,6 @@ export default function VipActivationModal({
         result.ciudad
       }.`
     );
-    if (result.direccion) {
-      setZonasText(result.direccion);
-    } else if (result.ciudad === "Valencia") {
-      setZonasText("El Viñedo, Naguanagua, San Diego, Prebo");
-    } else if (result.ciudad === "Caracas") {
-      setZonasText("Chacao, Altamira, Las Mercedes, Los Jabillos");
-    } else {
-      setZonasText("Las Delicias, Base Aragua, Calicanto, El Limón");
-    }
   };
 
   // --- Búsqueda por Cédula (Modo 1 por defecto: Solo Consulta, salvo que sea admin@jireh.com o ya haya autenticado esa misma cédula) ---
@@ -383,6 +399,8 @@ export default function VipActivationModal({
         bio,
         disponibleUrgenciasHoy: urgenciasHoy,
         fotoPerfilUrl: updateFotoUrl,
+        lat: updateLat,
+        lng: updateLng,
       });
 
       if (updateTipoCuenta === "usuario") {
@@ -393,18 +411,20 @@ export default function VipActivationModal({
           sedeFrecuente: updateSede,
           direccion: zonasText,
           fotoUrl: updateFotoUrl,
+          lat: updateLat,
+          lng: updateLng,
           tipoCuenta: "usuario",
         });
       } else {
         onProfileActivated(
           createdProfile,
           accessMode === 3
-            ? `¡Datos e imagen actualizados por Administrador (admin@jireh.com) para ${
+            ? `¡Datos, imagen y ubicación en el mapa actualizados por Administrador (admin@jireh.com) para ${
                 foundVip.nombreCompleto
               }! Sus ${foundVip.puntosAcumulados.toFixed(
                 2
               )} PTS permanecen intactos.`
-            : `¡Ficha e imagen VIP actualizadas con éxito por su titular (${
+            : `¡Ficha, imagen y ubicación en el mapa actualizadas con éxito por su titular (${
                 foundVip.nombreCompleto
               })! Tus ${foundVip.puntosAcumulados.toFixed(
                 2
@@ -1007,9 +1027,21 @@ export default function VipActivationModal({
                             </label>
                             <select
                               value={updateCiudad}
-                              onChange={(e) =>
-                                setUpdateCiudad(e.target.value as any)
-                              }
+                              onChange={(e) => {
+                                const newCity = e.target.value as Exclude<
+                                  JirehCity,
+                                  "Todas"
+                                >;
+                                setUpdateCiudad(newCity);
+                                if (!hasManuallyMovedPin) {
+                                  const inf = inferCoordinatesFromAddress(
+                                    zonasText,
+                                    newCity
+                                  );
+                                  setUpdateLat(inf.lat);
+                                  setUpdateLng(inf.lng);
+                                }
+                              }}
                               className="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs sm:text-sm bg-white focus:outline-none focus:ring-2 focus:ring-[#00B4D8]"
                             >
                               <option value="Maracay">Maracay</option>
@@ -1045,10 +1077,37 @@ export default function VipActivationModal({
                             type="text"
                             required
                             value={zonasText}
-                            onChange={(e) => setZonasText(e.target.value)}
+                            onChange={(e) => {
+                              const val = e.target.value;
+                              setZonasText(val);
+                              const inf = inferCoordinatesFromAddress(
+                                val,
+                                updateCiudad,
+                                updateLat,
+                                updateLng
+                              );
+                              setUpdateLat(inf.lat);
+                              setUpdateLng(inf.lng);
+                            }}
+                            placeholder="Ej: Palo Negro, Las Delicias, Base Aragua, San Diego..."
                             className="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs sm:text-sm bg-white focus:outline-none focus:ring-2 focus:ring-[#00B4D8]"
                           />
                         </div>
+
+                        {/* Mapa Interactivo para Mover y Ajustar el Icono del Técnico */}
+                        {updateTipoCuenta === "tecnico" && (
+                          <LocationPinPickerMap
+                            lat={updateLat}
+                            lng={updateLng}
+                            technicianName={foundVip.nombreCompleto}
+                            priceUSD={Number(tarifaDiagnostico) || 15}
+                            onChange={(newLat, newLng) => {
+                              setUpdateLat(newLat);
+                              setUpdateLng(newLng);
+                              setHasManuallyMovedPin(true);
+                            }}
+                          />
+                        )}
                       </div>
 
                       {updateTipoCuenta === "tecnico" && (
